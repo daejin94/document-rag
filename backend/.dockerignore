@@ -1,0 +1,5 @@
+.gradle/
+build/
+uploads/
+*.log
+.env

@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: document-rag
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/rag_db}
+    username: ${SPRING_DATASOURCE_USERNAME:rag_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:rag_password}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+server:
+  error:
+    include-message: never
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:change-this-secret-to-at-least-32-bytes}
+    access-token-minutes: 120
+  storage:
+    root: ${FILE_STORAGE_ROOT:./uploads}
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+    chat-model: ${OPENAI_CHAT_MODEL:gpt-4o-mini}
+    embedding-model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+  rag:
+    chunk-size: ${RAG_CHUNK_SIZE:800}
+    chunk-overlap: ${RAG_CHUNK_OVERLAP:150}
+    top-k: ${RAG_TOP_K:5}
+    similarity-threshold: ${RAG_SIMILARITY_THRESHOLD:0.70}

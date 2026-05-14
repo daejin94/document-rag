@@ -1,0 +1,11 @@
+.gradle/
+build/
+dist/
+out/
+node_modules/
+uploads/
+*.log
+.env
+.idea/
+*.iml
+*.tsbuildinfo
