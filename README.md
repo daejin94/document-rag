@@ -49,6 +49,7 @@
 ├── frontend/             # Vite React 클라이언트
 ├── docs/                 # 프로젝트 문서
 ├── docker-compose.yml    # 통합 실행용 Docker Compose
+├── run-backend.sh        # 로컬 백엔드 실행 스크립트
 ├── .env.example          # 환경변수 예시
 ├── README.md             # 프로젝트 설명 문서
 └── AGENTS.md             # AI coding agent 작업 지침
@@ -123,7 +124,12 @@ docker compose ps
 
 ```bash
 cd /mnt/e/project/01.\ rag/code
+sh run-backend.sh
+```
 
+스크립트 없이 직접 실행할 수도 있습니다.
+
+```bash
 set -a
 source .env
 set +a
@@ -221,6 +227,7 @@ curl -X POST http://localhost:8080/api/chat/query \
 
 - PDF는 아직 지원하지 않습니다.
 - TXT / Markdown 문서만 업로드할 수 있습니다.
+- 텍스트 인코딩은 UTF-8을 우선 사용하고, 실패하면 MS949를 한 번 더 시도합니다.
 - 문서 처리는 현재 동기식으로 수행됩니다.
 - 초기 데이터는 제공하지 않습니다.
 - refresh token은 별도 저장소 없이 access token과 동일하게 반환하는 MVP 형태입니다.

@@ -49,6 +49,12 @@ docker compose ps
 루트 `.env`를 로드한 뒤 백엔드를 실행한다.
 
 ```bash
+sh run-backend.sh
+```
+
+스크립트 없이 직접 실행할 수도 있다.
+
+```bash
 set -a
 source .env
 set +a

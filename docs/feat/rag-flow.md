@@ -24,7 +24,7 @@
 2. 서버는 인증 사용자 id를 기준으로 문서를 생성한다.
 3. 파일을 로컬 저장소에 저장한다.
 4. 문서 상태를 `PROCESSING`으로 변경한다.
-5. TXT/Markdown 텍스트를 UTF-8로 읽는다.
+5. TXT/Markdown 텍스트를 UTF-8로 먼저 읽고, 실패하면 MS949로 다시 읽는다.
 6. 텍스트를 chunk로 분할한다.
 7. 각 chunk를 embedding으로 변환한다.
 8. `document_chunks`에 chunk와 embedding을 저장한다.

@@ -23,6 +23,8 @@
 
 PDF는 아직 지원하지 않는다.
 
+텍스트 인코딩은 UTF-8을 우선 사용한다. UTF-8 디코딩에 실패하면 Windows 한국어 텍스트 파일 호환을 위해 MS949로 한 번 더 읽는다. 두 인코딩 모두 실패하면 UTF-8 텍스트 형식으로 변환한 뒤 다시 업로드하라는 오류를 반환한다.
+
 ## 업로드 처리 흐름
 
 1. 빈 파일인지 확인한다.
@@ -31,7 +33,7 @@ PDF는 아직 지원하지 않는다.
 4. 파일을 storage root 아래에 저장한다.
 5. `documents`에 문서 record를 저장한다.
 6. 문서 상태를 `PROCESSING`으로 변경한다.
-7. UTF-8 텍스트를 추출한다.
+7. UTF-8 우선, MS949 fallback 순서로 텍스트를 추출한다.
 8. 텍스트를 chunk로 나눈다.
 9. 각 chunk의 embedding을 OpenAI Embedding API로 생성한다.
 10. `document_chunks`에 chunk와 embedding을 저장한다.
