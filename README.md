@@ -47,7 +47,7 @@
 .
 ├── backend/              # Spring Boot API 서버
 ├── frontend/             # Vite React 클라이언트
-├── docs/                 # 운영 및 트러블슈팅 문서
+├── docs/                 # 프로젝트 문서
 ├── docker-compose.yml    # 통합 실행용 Docker Compose
 ├── .env.example          # 환경변수 예시
 ├── README.md             # 프로젝트 설명 문서
@@ -231,6 +231,12 @@ curl -X POST http://localhost:8080/api/chat/query \
 트러블슈팅 문서는 `docs` 폴더에서 관리합니다.
 
 - [트러블슈팅 문서](docs/troubleshooting.md)
+
+## 프로젝트 문서
+
+기능 흐름, API 목록, 개발 환경, 결정 기록은 `docs` 폴더에서 관리합니다.
+
+- [문서 인덱스](docs/README.md)
 
 ## AI Coding Agent 사용
 
