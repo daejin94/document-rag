@@ -47,7 +47,9 @@
 .
 ├── backend/              # Spring Boot API 서버
 ├── frontend/             # Vite React 클라이언트
+├── docs/                 # 프로젝트 문서
 ├── docker-compose.yml    # 통합 실행용 Docker Compose
+├── run-backend.sh        # 로컬 백엔드 실행 스크립트
 ├── .env.example          # 환경변수 예시
 ├── README.md             # 프로젝트 설명 문서
 └── AGENTS.md             # AI coding agent 작업 지침
@@ -122,7 +124,12 @@ docker compose ps
 
 ```bash
 cd /mnt/e/project/01.\ rag/code
+sh run-backend.sh
+```
 
+스크립트 없이 직접 실행할 수도 있습니다.
+
+```bash
 set -a
 source .env
 set +a
@@ -220,6 +227,7 @@ curl -X POST http://localhost:8080/api/chat/query \
 
 - PDF는 아직 지원하지 않습니다.
 - TXT / Markdown 문서만 업로드할 수 있습니다.
+- 텍스트 인코딩은 UTF-8을 우선 사용하고, 실패하면 MS949를 한 번 더 시도합니다.
 - 문서 처리는 현재 동기식으로 수행됩니다.
 - 초기 데이터는 제공하지 않습니다.
 - refresh token은 별도 저장소 없이 access token과 동일하게 반환하는 MVP 형태입니다.
@@ -227,73 +235,15 @@ curl -X POST http://localhost:8080/api/chat/query \
 
 ## 트러블슈팅
 
-### JWT_SECRET 관련 에러
+트러블슈팅 문서는 `docs` 폴더에서 관리합니다.
 
-아래와 같은 로그가 나오면 `JWT_SECRET`이 비어 있거나 너무 짧은 상태입니다.
+- [트러블슈팅 문서](docs/troubleshooting.md)
 
-```text
-WeakKeyException
-key byte array is 0 bits
-```
+## 프로젝트 문서
 
-해결 방법:
+기능 흐름, API 목록, 개발 환경, 결정 기록은 `docs` 폴더에서 관리합니다.
 
-1. 루트 `.env` 파일에 충분히 긴 `JWT_SECRET` 값을 넣습니다.
-2. 백엔드를 재시작합니다.
-
-개발용 secret 생성 예시:
-
-```bash
-openssl rand -base64 32
-```
-
-### gradle 명령어가 없을 때
-
-시스템 Gradle이 없어도 됩니다.  
-`backend/gradlew`가 포함되어 있으므로 아래처럼 실행합니다.
-
-```bash
-cd backend
-./gradlew bootRun
-```
-
-### Java가 없을 때
-
-아래와 같은 로그가 나오면 Java 21이 설치되어 있지 않은 상태입니다.
-
-```text
-JAVA_HOME is not set
-```
-
-WSL Ubuntu 기준 설치 명령어:
-
-```bash
-sudo apt update
-sudo apt install -y openjdk-21-jdk
-```
-
-설치 확인:
-
-```bash
-java -version
-```
-
-### 문서에서 정보를 찾을 수 없다고 나올 때
-
-검색 유사도 threshold가 너무 높거나 문서 chunk가 정상 생성되지 않았을 수 있습니다.
-
-확인할 내용:
-
-1. 업로드한 문서 상태가 `COMPLETED`인지 확인
-2. `chunkCount`가 1 이상인지 확인
-3. `.env`에서 similarity threshold를 낮춘 뒤 백엔드 재시작
-
-예시:
-
-```env
-RAG_SIMILARITY_THRESHOLD=0.20
-```
-
+- [문서 인덱스](docs/README.md)
 
 ## AI Coding Agent 사용
 
