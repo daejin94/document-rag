@@ -46,11 +46,21 @@ public class DocumentChunkJdbcRepository {
                     dc.document_id,
                     d.title AS document_title,
                     dc.chunk_index,
-                    dc.content,
+                    context.content,
                     dc.embedding <=> CAST(:embedding AS vector) AS distance,
                     1 - (dc.embedding <=> CAST(:embedding AS vector)) AS similarity
                 FROM document_chunks dc
                 JOIN documents d ON d.id = dc.document_id
+                JOIN LATERAL (
+                    SELECT string_agg(
+                        '[chunk ' || nearby.chunk_index || ']' || chr(10) || nearby.content,
+                        chr(10) || chr(10)
+                        ORDER BY nearby.chunk_index
+                    ) AS content
+                    FROM document_chunks nearby
+                    WHERE nearby.document_id = dc.document_id
+                      AND nearby.chunk_index BETWEEN dc.chunk_index - 1 AND dc.chunk_index + 1
+                ) context ON true
                 WHERE d.user_id = :userId
                   AND d.status = 'COMPLETED'
                 """ + documentFilter + """

@@ -401,7 +401,7 @@ function UploadForm({ token, onUploaded }: { token: string; onUploaded: () => Pr
       <label>
         파일
         <input
-          accept=".txt,.md,.markdown,text/plain,text/markdown"
+          accept=".txt,.md,.markdown,.pdf,text/plain,text/markdown,application/pdf"
           disabled={busy}
           key={fileInputKey}
           onChange={(event) => {

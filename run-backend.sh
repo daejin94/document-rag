@@ -20,5 +20,7 @@ set -a
 . "${ENV_FILE}"
 set +a
 
+echo "Starting backend with RAG_TOP_K=${RAG_TOP_K:-5}, RAG_SIMILARITY_THRESHOLD=${RAG_SIMILARITY_THRESHOLD:-0.70}"
+
 cd "${BACKEND_DIR}"
 exec ./gradlew bootRun
