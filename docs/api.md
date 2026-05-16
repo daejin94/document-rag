@@ -110,7 +110,7 @@ Content-Type: multipart/form-data
 | 필드 | 타입 | 설명 |
 |---|---|---|
 | `title` | string | 문서 제목 |
-| `file` | file | TXT, Markdown 파일 |
+| `file` | file | TXT, Markdown, PDF 파일 |
 
 응답:
 

@@ -20,10 +20,11 @@
 - `.txt`
 - `.md`
 - `.markdown`
-
-PDF는 아직 지원하지 않는다.
+- `.pdf`
 
 텍스트 인코딩은 UTF-8을 우선 사용한다. UTF-8 디코딩에 실패하면 Windows 한국어 텍스트 파일 호환을 위해 MS949로 한 번 더 읽는다. 두 인코딩 모두 실패하면 UTF-8 텍스트 형식으로 변환한 뒤 다시 업로드하라는 오류를 반환한다.
+
+PDF는 PDFBox로 텍스트를 추출한다. 스캔 이미지 기반 PDF처럼 추출 가능한 텍스트가 없거나 암호화된 PDF는 처리할 수 없다.
 
 ## 업로드 처리 흐름
 
@@ -33,7 +34,7 @@ PDF는 아직 지원하지 않는다.
 4. 파일을 storage root 아래에 저장한다.
 5. `documents`에 문서 record를 저장한다.
 6. 문서 상태를 `PROCESSING`으로 변경한다.
-7. UTF-8 우선, MS949 fallback 순서로 텍스트를 추출한다.
+7. 파일 형식에 따라 텍스트를 추출한다. TXT/Markdown은 UTF-8 우선, MS949 fallback 순서로 읽고 PDF는 PDFBox로 읽는다.
 8. 텍스트를 chunk로 나눈다.
 9. 각 chunk의 embedding을 OpenAI Embedding API로 생성한다.
 10. `document_chunks`에 chunk와 embedding을 저장한다.
@@ -70,7 +71,6 @@ PDF는 아직 지원하지 않는다.
 
 ## 주의사항
 
-- TXT/Markdown 외 파일 지원을 임의로 추가하지 않는다.
-- PDF 지원을 구현했다고 문서에 쓰지 않는다.
+- TXT/Markdown/PDF 외 파일 지원을 임의로 추가하지 않는다.
 - chunk와 embedding의 관계를 깨뜨리지 않는다.
 - schema 변경 시 Entity, Repository, migration, 문서를 함께 확인한다.

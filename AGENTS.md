@@ -22,7 +22,7 @@ README.md는 사람을 위한 프로젝트 설명 문서이고, AGENTS.md는 AI 
 
 이 프로젝트는 문서 기반 RAG Q&A 시스템이다.
 
-사용자가 TXT 또는 Markdown 문서를 업로드하면 서버가 문서를 chunk 단위로 분할하고, OpenAI Embedding API로 벡터화한 뒤 PostgreSQL + pgvector에 저장한다.
+사용자가 TXT, Markdown 또는 텍스트 추출 가능한 PDF 문서를 업로드하면 서버가 문서를 chunk 단위로 분할하고, OpenAI Embedding API로 벡터화한 뒤 PostgreSQL + pgvector에 저장한다.
 
 사용자가 질문하면 질문도 embedding으로 변환하고, 유사한 문서 chunk를 검색한 뒤 OpenAI Chat API로 근거 기반 답변과 출처를 반환한다.
 
@@ -94,8 +94,8 @@ AGENTS.md             AI coding agent 작업 지침
 
 ## RAG 작업 규칙
 
-- 업로드 가능한 문서 형식은 현재 TXT, Markdown만 지원한다.
-- PDF 지원을 구현했다고 문서에 작성하지 않는다.
+- 업로드 가능한 문서 형식은 현재 TXT, Markdown, PDF만 지원한다.
+- PDF는 텍스트 추출 가능한 문서만 지원하며, 스캔 이미지 기반 PDF나 암호화된 PDF를 지원한다고 문서에 작성하지 않는다.
 - 문서 처리 상태가 `COMPLETED`인 경우에만 정상 질의 대상으로 간주한다.
 - chunkCount가 1 이상인지 확인하는 흐름을 유지한다.
 - 질문 답변 시 검색된 chunk 기반으로 답변해야 한다.
@@ -264,8 +264,8 @@ curl -X POST http://localhost:8080/api/chat/query \
 - API 응답 구조를 임의로 변경하지 않는다.
 - 인증 우회 로직을 추가하지 않는다.
 - 문서 접근 권한 검증을 제거하지 않는다.
-- PDF 지원을 구현했다고 문서에 쓰지 않는다.
-- TXT / Markdown 외 파일 지원을 임의로 추가하지 않는다.
+- 스캔 이미지 기반 PDF나 암호화된 PDF를 지원한다고 문서에 쓰지 않는다.
+- TXT / Markdown / PDF 외 파일 지원을 임의로 추가하지 않는다.
 - OpenAI 모델명을 코드에 고정하지 않는다. 환경변수를 우선 사용한다.
 - RAG 검색 결과가 없는 경우를 무시하지 않는다.
 - 테스트 실패를 숨기지 않는다.
