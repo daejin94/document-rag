@@ -23,6 +23,7 @@ import java.util.List;
 public class ChatService {
 
     private static final String NO_CONTEXT_ANSWER = "등록된 문서에서 관련 정보를 찾을 수 없습니다.";
+    private static final int SOURCE_PREVIEW_LENGTH = 160;
 
     private final UserRepository userRepository;
     private final DocumentRepository documentRepository;
@@ -80,13 +81,7 @@ public class ChatService {
         );
 
         if (searchResults.isEmpty() || searchResults.getFirst().similarity() < ragProperties.similarityThreshold()) {
-            ChatMessage assistantMessage = chatMessageRepository.save(new ChatMessage(session, MessageRole.ASSISTANT, NO_CONTEXT_ANSWER));
-            return new QueryResponse(
-                    assistantMessage.getContent(),
-                    List.of(),
-                    new ModelResponse(chatModelClient.modelName(), embeddingModelClient.modelName()),
-                    new UsageResponse(0, 0)
-            );
+            return noContextResponse(session);
         }
 
         ChatModelResult modelResult = chatModelClient.generate(new ChatModelRequest(
@@ -95,16 +90,12 @@ public class ChatService {
         ));
         ChatMessage assistantMessage = chatMessageRepository.save(new ChatMessage(session, MessageRole.ASSISTANT, modelResult.answer()));
 
-        for (SearchResult result : searchResults) {
-            DocumentChunk chunk = documentChunkRepository.findById(result.chunkId())
-                    .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "검색된 chunk를 찾을 수 없습니다."));
-            answerSourceRepository.save(new AnswerSource(assistantMessage, chunk, result.similarity()));
-        }
+        saveAnswerSources(assistantMessage, searchResults);
 
         return new QueryResponse(
                 modelResult.answer(),
                 searchResults.stream().map(this::toSourceResponse).toList(),
-                new ModelResponse(chatModelClient.modelName(), embeddingModelClient.modelName()),
+                modelResponse(),
                 new UsageResponse(modelResult.promptTokens(), modelResult.completionTokens())
         );
     }
@@ -142,17 +133,13 @@ public class ChatService {
     }
 
     private SourceResponse toSourceResponse(SearchResult result) {
-        String preview = result.content();
-        if (preview.length() > 160) {
-            preview = preview.substring(0, 160) + "...";
-        }
         return new SourceResponse(
                 result.documentId(),
                 result.documentTitle(),
                 result.chunkId(),
                 result.chunkIndex(),
                 result.similarity(),
-                preview
+                preview(result.content())
         );
     }
 
@@ -177,10 +164,32 @@ public class ChatService {
     }
 
     private String preview(String content) {
-        if (content.length() <= 160) {
+        if (content.length() <= SOURCE_PREVIEW_LENGTH) {
             return content;
         }
-        return content.substring(0, 160) + "...";
+        return content.substring(0, SOURCE_PREVIEW_LENGTH) + "...";
+    }
+
+    private QueryResponse noContextResponse(ChatSession session) {
+        ChatMessage assistantMessage = chatMessageRepository.save(new ChatMessage(session, MessageRole.ASSISTANT, NO_CONTEXT_ANSWER));
+        return new QueryResponse(
+                assistantMessage.getContent(),
+                List.of(),
+                modelResponse(),
+                new UsageResponse(0, 0)
+        );
+    }
+
+    private void saveAnswerSources(ChatMessage assistantMessage, List<SearchResult> searchResults) {
+        for (SearchResult result : searchResults) {
+            DocumentChunk chunk = documentChunkRepository.findById(result.chunkId())
+                    .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "검색된 chunk를 찾을 수 없습니다."));
+            answerSourceRepository.save(new AnswerSource(assistantMessage, chunk, result.similarity()));
+        }
+    }
+
+    private ModelResponse modelResponse() {
+        return new ModelResponse(chatModelClient.modelName(), embeddingModelClient.modelName());
     }
 
     private String titleFromQuestion(String question) {

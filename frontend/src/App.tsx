@@ -1,7 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
   Bot,
-  Check,
   FileText,
   LogOut,
   MessageSquare,
@@ -10,122 +9,36 @@ import {
   Send,
   Shield,
   Trash2,
-  Upload,
-  UserPlus,
 } from 'lucide-react';
 import {
   deleteDocument,
   fetchDocumentDetail,
   fetchDocuments,
   fetchSessions,
-  login,
   queryDocuments,
-  signup,
-  uploadDocument,
 } from './api';
+import { AuthScreen } from './components/AuthScreen';
+import { UploadForm } from './components/UploadForm';
 import type { ChatSession, DocumentDetail, DocumentItem, QueryResponse } from './types';
-
-type AuthMode = 'login' | 'signup';
 
 const tokenKey = 'document-rag-token';
 
 export function App() {
   const [token, setToken] = useState(() => localStorage.getItem(tokenKey) || '');
 
+  function handleAuthenticated(accessToken: string) {
+    localStorage.setItem(tokenKey, accessToken);
+    setToken(accessToken);
+  }
+
   if (!token) {
-    return <AuthScreen onAuthenticated={setToken} />;
+    return <AuthScreen onAuthenticated={handleAuthenticated} />;
   }
 
   return <Workspace token={token} onLogout={() => {
     localStorage.removeItem(tokenKey);
     setToken('');
   }} />;
-}
-
-function AuthScreen({ onAuthenticated }: { onAuthenticated: (token: string) => void }) {
-  const [mode, setMode] = useState<AuthMode>('login');
-  const [email, setEmail] = useState('user@example.com');
-  const [password, setPassword] = useState('password1234');
-  const [name, setName] = useState('대진');
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    setError('');
-    setBusy(true);
-    try {
-      if (mode === 'signup') {
-        await signup(email, password, name);
-      }
-      const response = await login(email, password);
-      localStorage.setItem(tokenKey, response.accessToken);
-      onAuthenticated(response.accessToken);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '요청에 실패했습니다.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <main className="auth-shell">
-      <section className="auth-visual" aria-hidden="true">
-        <div className="document-stack">
-          <div className="paper paper-one">
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="paper paper-two">
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="vector-node node-a" />
-          <div className="vector-node node-b" />
-          <div className="vector-node node-c" />
-        </div>
-      </section>
-      <section className="auth-panel">
-        <div className="brand-row">
-          <Shield size={24} />
-          <span>Document RAG</span>
-        </div>
-        <div className="segmented">
-          <button className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')} type="button">
-            <Bot size={16} />
-            로그인
-          </button>
-          <button className={mode === 'signup' ? 'active' : ''} onClick={() => setMode('signup')} type="button">
-            <UserPlus size={16} />
-            회원가입
-          </button>
-        </div>
-        <form className="auth-form" onSubmit={submit}>
-          {mode === 'signup' && (
-            <label>
-              이름
-              <input value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" />
-            </label>
-          )}
-          <label>
-            이메일
-            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" />
-          </label>
-          <label>
-            비밀번호
-            <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" />
-          </label>
-          {error && <p className="error-text">{error}</p>}
-          <button className="primary-button" disabled={busy} type="submit">
-            {busy ? <RefreshCw className="spin" size={18} /> : <Check size={18} />}
-            {mode === 'login' ? '로그인' : '가입 후 로그인'}
-          </button>
-        </form>
-      </section>
-    </main>
-  );
 }
 
 function Workspace({ token, onLogout }: { token: string; onLogout: () => void }) {
@@ -348,84 +261,5 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
         )}
       </section>
     </main>
-  );
-}
-
-function UploadForm({ token, onUploaded }: { token: string; onUploaded: () => Promise<void> }) {
-  const [title, setTitle] = useState('');
-  const [file, setFile] = useState<File | null>(null);
-  const [fileInputKey, setFileInputKey] = useState(0);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    if (!title.trim()) {
-      setError('제목을 입력해주세요.');
-      return;
-    }
-    if (!file) {
-      setError('파일을 선택해주세요.');
-      return;
-    }
-    setBusy(true);
-    setError('');
-    try {
-      await uploadDocument(token, title, file);
-      setTitle('');
-      setFile(null);
-      setFileInputKey((value) => value + 1);
-      await onUploaded();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '업로드에 실패했습니다.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <form className="upload-form" onSubmit={submit}>
-      <label>
-        제목
-        <input
-          disabled={busy}
-          value={title}
-          onChange={(event) => {
-            setTitle(event.target.value);
-            if (error) {
-              setError('');
-            }
-          }}
-        />
-      </label>
-      <label>
-        파일
-        <input
-          accept=".txt,.md,.markdown,.pdf,text/plain,text/markdown,application/pdf"
-          disabled={busy}
-          key={fileInputKey}
-          onChange={(event) => {
-            setFile(event.target.files?.[0] || null);
-            if (error) {
-              setError('');
-            }
-          }}
-          type="file"
-        />
-      </label>
-      {busy && (
-        <div className="upload-progress" aria-live="polite" role="status">
-          <div className="upload-progress-track">
-            <span />
-          </div>
-          <p>문서 업로드 중입니다.</p>
-        </div>
-      )}
-      {error && <p className="error-text">{error}</p>}
-      <button className="primary-button" disabled={busy} type="submit">
-        {busy ? <RefreshCw className="spin" size={17} /> : <Upload size={17} />}
-        {busy ? '업로드 중' : '업로드'}
-      </button>
-    </form>
   );
 }
