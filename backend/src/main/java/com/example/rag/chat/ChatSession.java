@@ -1,5 +1,6 @@
 package com.example.rag.chat;
 
+import com.example.rag.project.ProjectEntity;
 import com.example.rag.user.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -27,6 +28,10 @@ public class ChatSession {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private ProjectEntity project;
+
     @Column(nullable = false)
     private String title;
 
@@ -39,8 +44,9 @@ public class ChatSession {
     protected ChatSession() {
     }
 
-    public ChatSession(User user, String title) {
+    public ChatSession(User user, ProjectEntity project, String title) {
         this.user = user;
+        this.project = project;
         this.title = title;
     }
 
@@ -62,6 +68,10 @@ public class ChatSession {
 
     public User getUser() {
         return user;
+    }
+
+    public ProjectEntity getProject() {
+        return project;
     }
 
     public String getTitle() {

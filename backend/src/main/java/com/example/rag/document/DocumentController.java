@@ -17,7 +17,7 @@ import java.util.List;
 
 @Validated
 @RestController
-@RequestMapping("/api/documents")
+@RequestMapping("/api/projects/{projectId}/documents")
 public class DocumentController {
 
     private final DocumentService documentService;
@@ -29,25 +29,33 @@ public class DocumentController {
     @PostMapping
     public DocumentUploadResponse upload(
             @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long projectId,
             @RequestParam MultipartFile file,
-            @RequestParam Long projectId,
             @RequestParam @NotBlank String title
     ) {
         return documentService.upload(authUser.id(), projectId, file, title);
     }
 
     @GetMapping
-    public List<DocumentListResponse> list(@AuthenticationPrincipal AuthUser authUser, @RequestParam Long projectId) {
+    public List<DocumentListResponse> list(@AuthenticationPrincipal AuthUser authUser, @PathVariable Long projectId) {
         return documentService.list(authUser.id(), projectId);
     }
 
     @GetMapping("/{documentId}")
-    public DocumentDetailResponse detail(@AuthenticationPrincipal AuthUser authUser, @PathVariable Long documentId) {
-        return documentService.detail(authUser.id(), documentId);
+    public DocumentDetailResponse detail(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long projectId,
+            @PathVariable Long documentId
+    ) {
+        return documentService.detail(authUser.id(), projectId, documentId);
     }
 
     @DeleteMapping("/{documentId}")
-    public DeleteDocumentResponse delete(@AuthenticationPrincipal AuthUser authUser, @PathVariable Long documentId) {
-        return documentService.delete(authUser.id(), documentId);
+    public DeleteDocumentResponse delete(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long projectId,
+            @PathVariable Long documentId
+    ) {
+        return documentService.delete(authUser.id(), projectId, documentId);
     }
 }

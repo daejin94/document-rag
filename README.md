@@ -235,9 +235,8 @@ curl -X POST http://localhost:8080/api/projects/1/members \
 ### 문서 업로드
 
 ```bash
-curl -X POST http://localhost:8080/api/documents \
+curl -X POST http://localhost:8080/api/projects/1/documents \
   -H "Authorization: Bearer <ACCESS_TOKEN>" \
-  -F "projectId=1" \
   -F "title=Spring Security Guide" \
   -F "file=@spring-security-guide.md"
 ```
@@ -245,12 +244,11 @@ curl -X POST http://localhost:8080/api/documents \
 ### 질문
 
 ```bash
-curl -X POST http://localhost:8080/api/chat/query \
+curl -X POST http://localhost:8080/api/projects/1/chat/query \
   -H "Authorization: Bearer <ACCESS_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
     "question": "JWT 인증 흐름 설명해줘.",
-    "projectId": 1,
     "documentIds": [1]
   }'
 ```
@@ -258,15 +256,28 @@ curl -X POST http://localhost:8080/api/chat/query \
 응답의 `sessionId`를 다음 질문 요청에 포함하면 같은 대화 세션에서 이전 질문과 답변 맥락을 이어간다.
 
 ```bash
-curl -X POST http://localhost:8080/api/chat/query \
+curl -X POST http://localhost:8080/api/projects/1/chat/query \
   -H "Authorization: Bearer <ACCESS_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
     "question": "방금 답변을 더 쉽게 요약해줘.",
-    "projectId": 1,
     "documentIds": [1],
     "sessionId": 1
   }'
+```
+
+### 프로젝트 대화 세션 조회
+
+```bash
+curl -X GET http://localhost:8080/api/projects/1/chat/sessions \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+### 프로젝트 대화 메시지 조회
+
+```bash
+curl -X GET http://localhost:8080/api/projects/1/chat/sessions/1/messages \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
 ```
 
 ## 지원 형식 및 현재 제한사항

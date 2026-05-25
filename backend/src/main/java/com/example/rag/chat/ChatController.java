@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/chat")
+@RequestMapping("/api")
 public class ChatController {
 
     private final ChatService chatService;
@@ -22,18 +22,26 @@ public class ChatController {
         this.chatService = chatService;
     }
 
-    @PostMapping("/query")
-    public QueryResponse query(@AuthenticationPrincipal AuthUser authUser, @Valid @RequestBody QueryRequest request) {
-        return chatService.query(authUser.id(), request);
+    @PostMapping("/projects/{projectId}/chat/query")
+    public QueryResponse query(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long projectId,
+            @Valid @RequestBody QueryRequest request
+    ) {
+        return chatService.query(authUser.id(), projectId, request);
     }
 
-    @GetMapping("/sessions")
-    public List<ChatSessionResponse> sessions(@AuthenticationPrincipal AuthUser authUser) {
-        return chatService.sessions(authUser.id());
+    @GetMapping("/projects/{projectId}/chat/sessions")
+    public List<ChatSessionResponse> sessions(@AuthenticationPrincipal AuthUser authUser, @PathVariable Long projectId) {
+        return chatService.sessions(authUser.id(), projectId);
     }
 
-    @GetMapping("/sessions/{sessionId}/messages")
-    public List<ChatMessageResponse> messages(@AuthenticationPrincipal AuthUser authUser, @PathVariable Long sessionId) {
-        return chatService.messages(authUser.id(), sessionId);
+    @GetMapping("/projects/{projectId}/chat/sessions/{sessionId}/messages")
+    public List<ChatMessageResponse> messages(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long projectId,
+            @PathVariable Long sessionId
+    ) {
+        return chatService.messages(authUser.id(), projectId, sessionId);
     }
 }

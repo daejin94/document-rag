@@ -105,8 +105,8 @@ public class DocumentService {
                 .toList();
     }
 
-    public DocumentDetailResponse detail(Long userId, Long documentId) {
-        DocumentEntity document = getAccessibleDocument(userId, documentId);
+    public DocumentDetailResponse detail(Long userId, Long projectId, Long documentId) {
+        DocumentEntity document = getAccessibleDocument(userId, projectId, documentId);
         return new DocumentDetailResponse(
                 document.getId(),
                 document.getTitle(),
@@ -117,18 +117,17 @@ public class DocumentService {
         );
     }
 
-    public DeleteDocumentResponse delete(Long userId, Long documentId) {
-        DocumentEntity document = getAccessibleDocument(userId, documentId);
-        projectService.requireAdmin(document.getProject().getId(), userId);
+    public DeleteDocumentResponse delete(Long userId, Long projectId, Long documentId) {
+        DocumentEntity document = getAccessibleDocument(userId, projectId, documentId);
+        projectService.requireAdmin(projectId, userId);
         documentRepository.delete(document);
         fileStorageService.deleteQuietly(document.getFilePath());
         return new DeleteDocumentResponse(true);
     }
 
-    private DocumentEntity getAccessibleDocument(Long userId, Long documentId) {
-        DocumentEntity document = documentRepository.findById(documentId)
+    private DocumentEntity getAccessibleDocument(Long userId, Long projectId, Long documentId) {
+        projectService.requireMember(projectId, userId);
+        return documentRepository.findByIdAndProjectId(documentId, projectId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "문서를 찾을 수 없습니다."));
-        projectService.requireMember(document.getProject().getId(), userId);
-        return document;
     }
 }

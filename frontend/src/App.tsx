@@ -93,24 +93,25 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
   }, [messages]);
 
   async function loadProjectData(projectId: number) {
-    const [documentItems, memberItems] = await Promise.all([
+    const [documentItems, memberItems, sessionItems] = await Promise.all([
       fetchDocuments(token, projectId),
       fetchProjectMembers(token, projectId),
+      fetchSessions(token, projectId),
     ]);
     setDocuments(documentItems);
     setMembers(memberItems);
+    setSessions(sessionItems);
     setSelectedIds((current) => current.filter((id) => documentItems.some((document) => document.documentId === id)));
+    setCurrentSessionId((current) => (
+      current && sessionItems.some((session) => session.sessionId === current) ? current : null
+    ));
   }
 
   async function refresh() {
     setError('');
     try {
-      const [projectItems, sessionItems] = await Promise.all([
-        fetchProjects(token),
-        fetchSessions(token),
-      ]);
+      const projectItems = await fetchProjects(token);
       setProjects(projectItems);
-      setSessions(sessionItems);
       const nextProjectId = currentProjectId && projectItems.some((project) => project.projectId === currentProjectId)
         ? currentProjectId
         : projectItems[0]?.projectId ?? null;
@@ -120,7 +121,9 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
       } else {
         setDocuments([]);
         setMembers([]);
+        setSessions([]);
         setSelectedIds([]);
+        setCurrentSessionId(null);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : '데이터를 불러오지 못했습니다.');
@@ -136,6 +139,8 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
     setCurrentProjectId(projectId);
     setDetail(null);
     setSelectedIds([]);
+    setCurrentSessionId(null);
+    setMessages([]);
     try {
       await loadProjectData(projectId);
     } catch (err) {
@@ -183,19 +188,27 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
   }
 
   async function inspect(documentId: number) {
+    if (!currentProjectId) {
+      setError('프로젝트를 먼저 선택해주세요.');
+      return;
+    }
     setError('');
     try {
-      setDetail(await fetchDocumentDetail(token, documentId));
+      setDetail(await fetchDocumentDetail(token, currentProjectId, documentId));
     } catch (err) {
       setError(err instanceof Error ? err.message : '문서 상세 조회에 실패했습니다.');
     }
   }
 
   async function openSession(sessionId: number) {
+    if (!currentProjectId) {
+      setError('프로젝트를 먼저 선택해주세요.');
+      return;
+    }
     setError('');
     setBusy(true);
     try {
-      const sessionMessages = await fetchMessages(token, sessionId);
+      const sessionMessages = await fetchMessages(token, currentProjectId, sessionId);
       setCurrentSessionId(sessionId);
       setMessages(sessionMessages);
     } catch (err) {
@@ -213,13 +226,17 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
   }
 
   async function remove(documentId: number) {
+    if (!currentProjectId) {
+      setError('프로젝트를 먼저 선택해주세요.');
+      return;
+    }
     if (!isProjectAdmin) {
       setError('프로젝트 관리자만 문서를 삭제할 수 있습니다.');
       return;
     }
     setError('');
     try {
-      await deleteDocument(token, documentId);
+      await deleteDocument(token, currentProjectId, documentId);
       if (detail?.documentId === documentId) {
         setDetail(null);
       }

@@ -73,36 +73,35 @@ export function addProjectMember(token: string, projectId: number, email: string
 }
 
 export function fetchDocuments(token: string, projectId: number) {
-  return request<DocumentItem[]>(`/api/documents?projectId=${projectId}`, {}, token);
+  return request<DocumentItem[]>(`/api/projects/${projectId}/documents`, {}, token);
 }
 
-export function fetchDocumentDetail(token: string, documentId: number) {
-  return request<DocumentDetail>(`/api/documents/${documentId}`, {}, token);
+export function fetchDocumentDetail(token: string, projectId: number, documentId: number) {
+  return request<DocumentDetail>(`/api/projects/${projectId}/documents/${documentId}`, {}, token);
 }
 
 export function uploadDocument(token: string, projectId: number, title: string, file: File) {
   const formData = new FormData();
-  formData.append('projectId', String(projectId));
   formData.append('title', title);
   formData.append('file', file);
-  return request<{ documentId: number; title: string; status: string }>('/api/documents', { method: 'POST', body: formData }, token);
+  return request<{ documentId: number; title: string; status: string }>(`/api/projects/${projectId}/documents`, { method: 'POST', body: formData }, token);
 }
 
-export function deleteDocument(token: string, documentId: number) {
-  return request<{ deleted: boolean }>(`/api/documents/${documentId}`, { method: 'DELETE' }, token);
+export function deleteDocument(token: string, projectId: number, documentId: number) {
+  return request<{ deleted: boolean }>(`/api/projects/${projectId}/documents/${documentId}`, { method: 'DELETE' }, token);
 }
 
 export function queryDocuments(token: string, question: string, projectId: number, documentIds: number[], sessionId?: number) {
-  return request<QueryResponse>('/api/chat/query', {
+  return request<QueryResponse>(`/api/projects/${projectId}/chat/query`, {
     method: 'POST',
-    body: JSON.stringify({ question, projectId, documentIds, sessionId }),
+    body: JSON.stringify({ question, documentIds, sessionId }),
   }, token);
 }
 
-export function fetchSessions(token: string) {
-  return request<ChatSession[]>('/api/chat/sessions', {}, token);
+export function fetchSessions(token: string, projectId: number) {
+  return request<ChatSession[]>(`/api/projects/${projectId}/chat/sessions`, {}, token);
 }
 
-export function fetchMessages(token: string, sessionId: number) {
-  return request<ChatMessage[]>(`/api/chat/sessions/${sessionId}/messages`, {}, token);
+export function fetchMessages(token: string, projectId: number, sessionId: number) {
+  return request<ChatMessage[]>(`/api/projects/${projectId}/chat/sessions/${sessionId}/messages`, {}, token);
 }
