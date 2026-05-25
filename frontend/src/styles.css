@@ -20,6 +20,7 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -195,6 +196,7 @@ label {
 }
 
 input,
+select,
 textarea {
   width: 100%;
   border: 1px solid #cbd5e1;
@@ -210,6 +212,11 @@ input {
   padding: 0 12px;
 }
 
+select {
+  height: 42px;
+  padding: 0 10px;
+}
+
 input[type="file"] {
   height: auto;
   padding: 10px;
@@ -223,6 +230,7 @@ textarea {
 }
 
 input:focus,
+select:focus,
 textarea:focus {
   border-color: #0f766e;
   box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
@@ -308,6 +316,58 @@ textarea:focus {
   border: 1px solid #dfe5ec;
   border-radius: 8px;
   background: #f8fafc;
+}
+
+.project-form,
+.member-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.member-form {
+  grid-template-columns: minmax(0, 1fr) 96px auto;
+}
+
+.project-list,
+.member-list {
+  display: grid;
+  gap: 8px;
+}
+
+.project-button,
+.member-row {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid #dfe5ec;
+  border-radius: 8px;
+  background: #ffffff;
+  text-align: left;
+}
+
+.project-button.active {
+  border-color: rgba(15, 118, 110, 0.3);
+  background: #ecfdf5;
+}
+
+.project-button strong,
+.member-row strong {
+  overflow: hidden;
+  color: #334155;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-button small,
+.member-row small {
+  overflow: hidden;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .upload-progress {

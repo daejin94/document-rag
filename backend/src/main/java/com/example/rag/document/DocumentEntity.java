@@ -1,5 +1,6 @@
 package com.example.rag.document;
 
+import com.example.rag.project.ProjectEntity;
 import com.example.rag.user.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -29,6 +30,10 @@ public class DocumentEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private ProjectEntity project;
+
     @Column(nullable = false)
     private String title;
 
@@ -56,8 +61,9 @@ public class DocumentEntity {
     protected DocumentEntity() {
     }
 
-    public DocumentEntity(User user, String title, String originalFileName, String filePath, String contentType) {
+    public DocumentEntity(User user, ProjectEntity project, String title, String originalFileName, String filePath, String contentType) {
         this.user = user;
+        this.project = project;
         this.title = title;
         this.originalFileName = originalFileName;
         this.filePath = filePath;
@@ -98,6 +104,10 @@ public class DocumentEntity {
 
     public User getUser() {
         return user;
+    }
+
+    public ProjectEntity getProject() {
+        return project;
     }
 
     public String getTitle() {

@@ -30,14 +30,15 @@ public class DocumentController {
     public DocumentUploadResponse upload(
             @AuthenticationPrincipal AuthUser authUser,
             @RequestParam MultipartFile file,
+            @RequestParam Long projectId,
             @RequestParam @NotBlank String title
     ) {
-        return documentService.upload(authUser.id(), file, title);
+        return documentService.upload(authUser.id(), projectId, file, title);
     }
 
     @GetMapping
-    public List<DocumentListResponse> list(@AuthenticationPrincipal AuthUser authUser) {
-        return documentService.list(authUser.id());
+    public List<DocumentListResponse> list(@AuthenticationPrincipal AuthUser authUser, @RequestParam Long projectId) {
+        return documentService.list(authUser.id(), projectId);
     }
 
     @GetMapping("/{documentId}")

@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
   Bot,
   FileText,
+  Folder,
   LogOut,
   MessageSquare,
   Plus,
@@ -10,18 +11,32 @@ import {
   Send,
   Shield,
   Trash2,
+  UserPlus,
+  Users,
 } from 'lucide-react';
 import {
+  addProjectMember,
+  createProject,
   deleteDocument,
   fetchDocumentDetail,
   fetchDocuments,
   fetchMessages,
+  fetchProjectMembers,
+  fetchProjects,
   fetchSessions,
   queryDocuments,
 } from './api';
 import { AuthScreen } from './components/AuthScreen';
 import { UploadForm } from './components/UploadForm';
-import type { ChatMessage, ChatSession, DocumentDetail, DocumentItem } from './types';
+import type {
+  ChatMessage,
+  ChatSession,
+  DocumentDetail,
+  DocumentItem,
+  Project,
+  ProjectMember,
+  ProjectRole,
+} from './types';
 
 const tokenKey = 'document-rag-token';
 
@@ -44,15 +59,28 @@ export function App() {
 }
 
 function Workspace({ token, onLogout }: { token: string; onLogout: () => void }) {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [members, setMembers] = useState<ProjectMember[]>([]);
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [currentProjectId, setCurrentProjectId] = useState<number | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [detail, setDetail] = useState<DocumentDetail | null>(null);
+  const [projectName, setProjectName] = useState('');
+  const [memberEmail, setMemberEmail] = useState('');
+  const [memberRole, setMemberRole] = useState<ProjectRole>('MEMBER');
   const [question, setQuestion] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  const currentProject = useMemo(
+    () => projects.find((project) => project.projectId === currentProjectId) ?? null,
+    [projects, currentProjectId],
+  );
+
+  const isProjectAdmin = currentProject?.role === 'ADMIN';
 
   const selectedDocuments = useMemo(
     () => documents.filter((document) => selectedIds.includes(document.documentId)),
@@ -64,16 +92,36 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
     return assistantMessage?.sources ?? [];
   }, [messages]);
 
+  async function loadProjectData(projectId: number) {
+    const [documentItems, memberItems] = await Promise.all([
+      fetchDocuments(token, projectId),
+      fetchProjectMembers(token, projectId),
+    ]);
+    setDocuments(documentItems);
+    setMembers(memberItems);
+    setSelectedIds((current) => current.filter((id) => documentItems.some((document) => document.documentId === id)));
+  }
+
   async function refresh() {
     setError('');
     try {
-      const [documentItems, sessionItems] = await Promise.all([
-        fetchDocuments(token),
+      const [projectItems, sessionItems] = await Promise.all([
+        fetchProjects(token),
         fetchSessions(token),
       ]);
-      setDocuments(documentItems);
+      setProjects(projectItems);
       setSessions(sessionItems);
-      setSelectedIds((current) => current.filter((id) => documentItems.some((document) => document.documentId === id)));
+      const nextProjectId = currentProjectId && projectItems.some((project) => project.projectId === currentProjectId)
+        ? currentProjectId
+        : projectItems[0]?.projectId ?? null;
+      setCurrentProjectId(nextProjectId);
+      if (nextProjectId) {
+        await loadProjectData(nextProjectId);
+      } else {
+        setDocuments([]);
+        setMembers([]);
+        setSelectedIds([]);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '데이터를 불러오지 못했습니다.');
     }
@@ -82,6 +130,57 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
   useEffect(() => {
     void refresh();
   }, []);
+
+  async function selectProject(projectId: number) {
+    setError('');
+    setCurrentProjectId(projectId);
+    setDetail(null);
+    setSelectedIds([]);
+    try {
+      await loadProjectData(projectId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '프로젝트 데이터를 불러오지 못했습니다.');
+    }
+  }
+
+  async function submitProject(event: FormEvent) {
+    event.preventDefault();
+    if (!projectName.trim()) {
+      setError('프로젝트 이름을 입력해주세요.');
+      return;
+    }
+    setError('');
+    try {
+      const project = await createProject(token, projectName.trim());
+      setProjectName('');
+      setCurrentProjectId(project.projectId);
+      setProjects(await fetchProjects(token));
+      await loadProjectData(project.projectId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '프로젝트 생성에 실패했습니다.');
+    }
+  }
+
+  async function submitMember(event: FormEvent) {
+    event.preventDefault();
+    if (!currentProjectId) {
+      setError('프로젝트를 먼저 선택해주세요.');
+      return;
+    }
+    if (!memberEmail.trim()) {
+      setError('이메일을 입력해주세요.');
+      return;
+    }
+    setError('');
+    try {
+      await addProjectMember(token, currentProjectId, memberEmail.trim(), memberRole);
+      setMemberEmail('');
+      setMemberRole('MEMBER');
+      setMembers(await fetchProjectMembers(token, currentProjectId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '멤버 추가에 실패했습니다.');
+    }
+  }
 
   async function inspect(documentId: number) {
     setError('');
@@ -114,6 +213,10 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
   }
 
   async function remove(documentId: number) {
+    if (!isProjectAdmin) {
+      setError('프로젝트 관리자만 문서를 삭제할 수 있습니다.');
+      return;
+    }
     setError('');
     try {
       await deleteDocument(token, documentId);
@@ -131,6 +234,10 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
     if (!question.trim()) {
       return;
     }
+    if (!currentProjectId) {
+      setError('프로젝트를 먼저 선택해주세요.');
+      return;
+    }
     setBusy(true);
     setError('');
     const userMessage: ChatMessage = {
@@ -141,7 +248,7 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
     };
     setMessages((current) => [...current, userMessage]);
     try {
-      const response = await queryDocuments(token, userMessage.content, selectedIds, currentSessionId ?? undefined);
+      const response = await queryDocuments(token, userMessage.content, currentProjectId, selectedIds, currentSessionId ?? undefined);
       setCurrentSessionId(response.sessionId);
       setMessages((current) => [
         ...current,
@@ -176,7 +283,74 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
           <Shield size={22} />
           <span>Document RAG</span>
         </div>
-        <UploadForm token={token} onUploaded={refresh} />
+
+        <section className="side-section">
+          <div className="section-title">
+            <Folder size={17} />
+            프로젝트
+          </div>
+          <form className="project-form" onSubmit={submitProject}>
+            <input
+              value={projectName}
+              onChange={(event) => setProjectName(event.target.value)}
+              placeholder="프로젝트 이름"
+            />
+            <button className="icon-button" title="프로젝트 생성" type="submit">
+              <Plus size={15} />
+            </button>
+          </form>
+          <div className="project-list">
+            {projects.map((project) => (
+              <button
+                className={project.projectId === currentProjectId ? 'project-button active' : 'project-button'}
+                key={project.projectId}
+                onClick={() => selectProject(project.projectId)}
+                type="button"
+              >
+                <strong>{project.name}</strong>
+                <small>{project.role}</small>
+              </button>
+            ))}
+            {projects.length === 0 && <p className="empty-text">프로젝트 없음</p>}
+          </div>
+        </section>
+
+        <UploadForm token={token} projectId={currentProjectId} onUploaded={refresh} />
+
+        {currentProject && (
+          <section className="side-section compact">
+            <div className="section-title">
+              <Users size={17} />
+              멤버
+            </div>
+            {isProjectAdmin && (
+              <form className="member-form" onSubmit={submitMember}>
+                <input
+                  value={memberEmail}
+                  onChange={(event) => setMemberEmail(event.target.value)}
+                  placeholder="user@example.com"
+                  type="email"
+                />
+                <select value={memberRole} onChange={(event) => setMemberRole(event.target.value as ProjectRole)}>
+                  <option value="MEMBER">MEMBER</option>
+                  <option value="ADMIN">ADMIN</option>
+                </select>
+                <button className="icon-button" title="멤버 추가" type="submit">
+                  <UserPlus size={15} />
+                </button>
+              </form>
+            )}
+            <div className="member-list">
+              {members.map((member) => (
+                <div className="member-row" key={member.userId}>
+                  <strong>{member.name}</strong>
+                  <small>{member.role} · {member.email}</small>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section className="side-section">
           <div className="section-title">
             <FileText size={17} />
@@ -203,15 +377,18 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
                   <button className="icon-button" onClick={() => inspect(document.documentId)} title="상세" type="button">
                     <Search size={15} />
                   </button>
-                  <button className="icon-button danger" onClick={() => remove(document.documentId)} title="삭제" type="button">
-                    <Trash2 size={15} />
-                  </button>
+                  {isProjectAdmin && (
+                    <button className="icon-button danger" onClick={() => remove(document.documentId)} title="삭제" type="button">
+                      <Trash2 size={15} />
+                    </button>
+                  )}
                 </div>
               </article>
             ))}
             {documents.length === 0 && <p className="empty-text">문서 없음</p>}
           </div>
         </section>
+
         <section className="side-section compact">
           <div className="section-title session-title">
             <span>
@@ -236,6 +413,7 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
             {sessions.length === 0 && <p className="empty-text">대화 없음</p>}
           </div>
         </section>
+
         <button className="ghost-button logout" onClick={onLogout} type="button">
           <LogOut size={17} />
           로그아웃
@@ -246,7 +424,7 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
         <header className="topbar">
           <div>
             <p className="eyebrow">RAG Query</p>
-            <h1>문서 기반 대화</h1>
+            <h1>{currentProject ? currentProject.name : '문서 기반 대화'}</h1>
           </div>
           <div className="selected-docs">
             {selectedDocuments.length === 0 ? (
@@ -266,7 +444,7 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
             placeholder="JWT 인증 흐름 설명해줘."
             rows={4}
           />
-          <button className="primary-button send-button" disabled={busy} type="submit">
+          <button className="primary-button send-button" disabled={busy || !currentProjectId} type="submit">
             {busy ? <RefreshCw className="spin" size={18} /> : <Send size={18} />}
             질문
           </button>

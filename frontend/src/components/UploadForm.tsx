@@ -4,10 +4,11 @@ import { uploadDocument } from '../api';
 
 interface UploadFormProps {
   token: string;
+  projectId: number | null;
   onUploaded: () => Promise<void>;
 }
 
-export function UploadForm({ token, onUploaded }: UploadFormProps) {
+export function UploadForm({ token, projectId, onUploaded }: UploadFormProps) {
   const [title, setTitle] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
@@ -24,10 +25,14 @@ export function UploadForm({ token, onUploaded }: UploadFormProps) {
       setError('파일을 선택해주세요.');
       return;
     }
+    if (!projectId) {
+      setError('프로젝트를 먼저 선택해주세요.');
+      return;
+    }
     setBusy(true);
     setError('');
     try {
-      await uploadDocument(token, title, file);
+      await uploadDocument(token, projectId, title, file);
       setTitle('');
       setFile(null);
       setFileInputKey((value) => value + 1);
@@ -78,7 +83,7 @@ export function UploadForm({ token, onUploaded }: UploadFormProps) {
         </div>
       )}
       {error && <p className="error-text">{error}</p>}
-      <button className="primary-button" disabled={busy} type="submit">
+      <button className="primary-button" disabled={busy || !projectId} type="submit">
         {busy ? <RefreshCw className="spin" size={17} /> : <Upload size={17} />}
         {busy ? '업로드 중' : '업로드'}
       </button>

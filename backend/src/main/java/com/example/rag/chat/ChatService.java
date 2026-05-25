@@ -11,6 +11,7 @@ import com.example.rag.llm.ChatModelClient;
 import com.example.rag.llm.ChatModelRequest;
 import com.example.rag.llm.ChatModelResult;
 import com.example.rag.llm.EmbeddingModelClient;
+import com.example.rag.project.ProjectService;
 import com.example.rag.user.User;
 import com.example.rag.user.UserRepository;
 import org.springframework.http.HttpStatus;
@@ -30,6 +31,7 @@ public class ChatService {
     private final DocumentRepository documentRepository;
     private final DocumentChunkRepository documentChunkRepository;
     private final DocumentChunkJdbcRepository documentChunkJdbcRepository;
+    private final ProjectService projectService;
     private final ChatSessionRepository chatSessionRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final AnswerSourceRepository answerSourceRepository;
@@ -43,6 +45,7 @@ public class ChatService {
             DocumentRepository documentRepository,
             DocumentChunkRepository documentChunkRepository,
             DocumentChunkJdbcRepository documentChunkJdbcRepository,
+            ProjectService projectService,
             ChatSessionRepository chatSessionRepository,
             ChatMessageRepository chatMessageRepository,
             AnswerSourceRepository answerSourceRepository,
@@ -55,6 +58,7 @@ public class ChatService {
         this.documentRepository = documentRepository;
         this.documentChunkRepository = documentChunkRepository;
         this.documentChunkJdbcRepository = documentChunkJdbcRepository;
+        this.projectService = projectService;
         this.chatSessionRepository = chatSessionRepository;
         this.chatMessageRepository = chatMessageRepository;
         this.answerSourceRepository = answerSourceRepository;
@@ -68,7 +72,7 @@ public class ChatService {
     public QueryResponse query(Long userId, QueryRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "인증 사용자를 찾을 수 없습니다."));
-        validateDocumentOwnership(userId, request.documentIds());
+        validateProjectDocuments(userId, request.projectId(), request.documentIds());
 
         ChatSession session = resolveSession(user, request);
         List<ChatMessage> history = recentHistory(session.getId());
@@ -78,7 +82,7 @@ public class ChatService {
 
         List<Float> questionEmbedding = embeddingModelClient.embed(promptBuilder.searchText(request.question(), history));
         List<SearchResult> searchResults = documentChunkJdbcRepository.search(
-                userId,
+                request.projectId(),
                 request.documentIds(),
                 questionEmbedding,
                 ragProperties.topK()
@@ -134,12 +138,13 @@ public class ChatService {
                 .toList();
     }
 
-    private void validateDocumentOwnership(Long userId, List<Long> documentIds) {
+    private void validateProjectDocuments(Long userId, Long projectId, List<Long> documentIds) {
+        projectService.requireMember(projectId, userId);
         if (documentIds == null || documentIds.isEmpty()) {
             return;
         }
         for (Long documentId : documentIds) {
-            if (documentRepository.findByIdAndUserId(documentId, userId).isEmpty()) {
+            if (!documentRepository.existsByIdAndProjectId(documentId, projectId)) {
                 throw new ApiException(HttpStatus.FORBIDDEN, "접근할 수 없는 문서가 포함되어 있습니다.");
             }
         }
