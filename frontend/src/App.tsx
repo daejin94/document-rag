@@ -4,6 +4,7 @@ import {
   FileText,
   LogOut,
   MessageSquare,
+  Plus,
   RefreshCw,
   Search,
   Send,
@@ -14,12 +15,13 @@ import {
   deleteDocument,
   fetchDocumentDetail,
   fetchDocuments,
+  fetchMessages,
   fetchSessions,
   queryDocuments,
 } from './api';
 import { AuthScreen } from './components/AuthScreen';
 import { UploadForm } from './components/UploadForm';
-import type { ChatSession, DocumentDetail, DocumentItem, QueryResponse } from './types';
+import type { ChatMessage, ChatSession, DocumentDetail, DocumentItem } from './types';
 
 const tokenKey = 'document-rag-token';
 
@@ -44,10 +46,11 @@ export function App() {
 function Workspace({ token, onLogout }: { token: string; onLogout: () => void }) {
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [detail, setDetail] = useState<DocumentDetail | null>(null);
   const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState<QueryResponse | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -55,6 +58,11 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
     () => documents.filter((document) => selectedIds.includes(document.documentId)),
     [documents, selectedIds],
   );
+
+  const latestSources = useMemo(() => {
+    const assistantMessage = [...messages].reverse().find((message) => message.role === 'ASSISTANT');
+    return assistantMessage?.sources ?? [];
+  }, [messages]);
 
   async function refresh() {
     setError('');
@@ -84,6 +92,27 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
     }
   }
 
+  async function openSession(sessionId: number) {
+    setError('');
+    setBusy(true);
+    try {
+      const sessionMessages = await fetchMessages(token, sessionId);
+      setCurrentSessionId(sessionId);
+      setMessages(sessionMessages);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '대화 내역 조회에 실패했습니다.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function startNewSession() {
+    setCurrentSessionId(null);
+    setMessages([]);
+    setQuestion('');
+    setError('');
+  }
+
   async function remove(documentId: number) {
     setError('');
     try {
@@ -104,10 +133,25 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
     }
     setBusy(true);
     setError('');
-    setAnswer(null);
+    const userMessage: ChatMessage = {
+      role: 'USER',
+      content: question.trim(),
+      sources: [],
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((current) => [...current, userMessage]);
     try {
-      const response = await queryDocuments(token, question, selectedIds);
-      setAnswer(response);
+      const response = await queryDocuments(token, userMessage.content, selectedIds, currentSessionId ?? undefined);
+      setCurrentSessionId(response.sessionId);
+      setMessages((current) => [
+        ...current,
+        {
+          role: 'ASSISTANT',
+          content: response.answer,
+          sources: response.sources,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
       setQuestion('');
       await refresh();
     } catch (err) {
@@ -169,14 +213,27 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
           </div>
         </section>
         <section className="side-section compact">
-          <div className="section-title">
-            <MessageSquare size={17} />
-            세션
+          <div className="section-title session-title">
+            <span>
+              <MessageSquare size={17} />
+              세션
+            </span>
+            <button className="icon-button" onClick={startNewSession} title="새 대화" type="button">
+              <Plus size={15} />
+            </button>
           </div>
           <div className="session-list">
             {sessions.slice(0, 6).map((session) => (
-              <span key={session.sessionId}>{session.title}</span>
+              <button
+                className={session.sessionId === currentSessionId ? 'session-button active' : 'session-button'}
+                key={session.sessionId}
+                onClick={() => openSession(session.sessionId)}
+                type="button"
+              >
+                {session.title}
+              </button>
             ))}
+            {sessions.length === 0 && <p className="empty-text">대화 없음</p>}
           </div>
         </section>
         <button className="ghost-button logout" onClick={onLogout} type="button">
@@ -189,7 +246,7 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
         <header className="topbar">
           <div>
             <p className="eyebrow">RAG Query</p>
-            <h1>문서 기반 질문</h1>
+            <h1>문서 기반 대화</h1>
           </div>
           <div className="selected-docs">
             {selectedDocuments.length === 0 ? (
@@ -216,22 +273,25 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
         </form>
 
         <section className="result-layout">
-          <article className="answer-panel">
+          <article className="answer-panel chat-panel">
             <div className="section-title">
               <Bot size={18} />
-              답변
+              대화
             </div>
-            {answer ? (
-              <>
-                <p className="answer-text">{answer.answer}</p>
-                <div className="meta-line">
-                  <span>{answer.model.chatModel}</span>
-                  <span>{answer.model.embeddingModel}</span>
-                  <span>{answer.usage.promptTokens + answer.usage.completionTokens} tokens</span>
-                </div>
-              </>
+            {messages.length > 0 ? (
+              <div className="message-list">
+                {messages.map((message, index) => (
+                  <div
+                    className={message.role === 'USER' ? 'chat-message user-message' : 'chat-message assistant-message'}
+                    key={`${message.createdAt}-${index}`}
+                  >
+                    <strong>{message.role === 'USER' ? '나' : 'AI'}</strong>
+                    <p>{message.content}</p>
+                  </div>
+                ))}
+              </div>
             ) : (
-              <p className="empty-text">대기 중</p>
+              <p className="empty-text">새 질문으로 대화를 시작하세요.</p>
             )}
           </article>
 
@@ -240,14 +300,14 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
               <FileText size={18} />
               출처
             </div>
-            {answer?.sources.map((source) => (
+            {latestSources.map((source) => (
               <div className="source-item" key={source.chunkId}>
                 <strong>{source.documentTitle}</strong>
                 <small>chunk {source.chunkIndex} · {(source.similarity * 100).toFixed(1)}%</small>
                 <p>{source.contentPreview}</p>
               </div>
             ))}
-            {(!answer || answer.sources.length === 0) && <p className="empty-text">출처 없음</p>}
+            {latestSources.length === 0 && <p className="empty-text">출처 없음</p>}
           </article>
         </section>
 

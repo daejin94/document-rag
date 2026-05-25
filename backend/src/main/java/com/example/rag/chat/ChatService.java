@@ -24,6 +24,7 @@ public class ChatService {
 
     private static final String NO_CONTEXT_ANSWER = "등록된 문서에서 관련 정보를 찾을 수 없습니다.";
     private static final int SOURCE_PREVIEW_LENGTH = 160;
+    private static final int MAX_HISTORY_MESSAGES = 20;
 
     private final UserRepository userRepository;
     private final DocumentRepository documentRepository;
@@ -69,10 +70,13 @@ public class ChatService {
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "인증 사용자를 찾을 수 없습니다."));
         validateDocumentOwnership(userId, request.documentIds());
 
-        ChatSession session = chatSessionRepository.save(new ChatSession(user, titleFromQuestion(request.question())));
-        chatMessageRepository.save(new ChatMessage(session, MessageRole.USER, request.question()));
+        ChatSession session = resolveSession(user, request);
+        List<ChatMessage> history = recentHistory(session.getId());
 
-        List<Float> questionEmbedding = embeddingModelClient.embed(request.question());
+        chatMessageRepository.save(new ChatMessage(session, MessageRole.USER, request.question()));
+        session.markUpdated();
+
+        List<Float> questionEmbedding = embeddingModelClient.embed(promptBuilder.searchText(request.question(), history));
         List<SearchResult> searchResults = documentChunkJdbcRepository.search(
                 userId,
                 request.documentIds(),
@@ -80,21 +84,25 @@ public class ChatService {
                 ragProperties.topK()
         );
 
-        if (searchResults.isEmpty() || searchResults.getFirst().similarity() < ragProperties.similarityThreshold()) {
+        boolean hasSearchContext = hasSearchContext(searchResults);
+        List<SearchResult> contextResults = hasSearchContext ? searchResults : List.of();
+        if (!hasSearchContext && history.isEmpty()) {
             return noContextResponse(session);
         }
 
         ChatModelResult modelResult = chatModelClient.generate(new ChatModelRequest(
                 promptBuilder.systemPrompt(),
-                promptBuilder.userPrompt(request.question(), searchResults)
+                promptBuilder.userPrompt(request.question(), contextResults, history)
         ));
         ChatMessage assistantMessage = chatMessageRepository.save(new ChatMessage(session, MessageRole.ASSISTANT, modelResult.answer()));
+        session.markUpdated();
 
-        saveAnswerSources(assistantMessage, searchResults);
+        saveAnswerSources(assistantMessage, contextResults);
 
         return new QueryResponse(
+                session.getId(),
                 modelResult.answer(),
-                searchResults.stream().map(this::toSourceResponse).toList(),
+                contextResults.stream().map(this::toSourceResponse).toList(),
                 modelResponse(),
                 new UsageResponse(modelResult.promptTokens(), modelResult.completionTokens())
         );
@@ -102,8 +110,13 @@ public class ChatService {
 
     @Transactional(readOnly = true)
     public List<ChatSessionResponse> sessions(Long userId) {
-        return chatSessionRepository.findAllByUserIdOrderByCreatedAtDesc(userId).stream()
-                .map(session -> new ChatSessionResponse(session.getId(), session.getTitle(), session.getCreatedAt()))
+        return chatSessionRepository.findAllByUserIdOrderByUpdatedAtDesc(userId).stream()
+                .map(session -> new ChatSessionResponse(
+                        session.getId(),
+                        session.getTitle(),
+                        session.getCreatedAt(),
+                        session.getUpdatedAt()
+                ))
                 .toList();
     }
 
@@ -130,6 +143,26 @@ public class ChatService {
                 throw new ApiException(HttpStatus.FORBIDDEN, "접근할 수 없는 문서가 포함되어 있습니다.");
             }
         }
+    }
+
+    private ChatSession resolveSession(User user, QueryRequest request) {
+        if (request.sessionId() == null) {
+            return chatSessionRepository.save(new ChatSession(user, titleFromQuestion(request.question())));
+        }
+        return chatSessionRepository.findByIdAndUserId(request.sessionId(), user.getId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "채팅 세션을 찾을 수 없습니다."));
+    }
+
+    private List<ChatMessage> recentHistory(Long sessionId) {
+        List<ChatMessage> messages = chatMessageRepository.findAllByChatSessionIdOrderByCreatedAtAsc(sessionId);
+        if (messages.size() <= MAX_HISTORY_MESSAGES) {
+            return messages;
+        }
+        return messages.subList(messages.size() - MAX_HISTORY_MESSAGES, messages.size());
+    }
+
+    private boolean hasSearchContext(List<SearchResult> searchResults) {
+        return !searchResults.isEmpty() && searchResults.getFirst().similarity() >= ragProperties.similarityThreshold();
     }
 
     private SourceResponse toSourceResponse(SearchResult result) {
@@ -172,7 +205,9 @@ public class ChatService {
 
     private QueryResponse noContextResponse(ChatSession session) {
         ChatMessage assistantMessage = chatMessageRepository.save(new ChatMessage(session, MessageRole.ASSISTANT, NO_CONTEXT_ANSWER));
+        session.markUpdated();
         return new QueryResponse(
+                session.getId(),
                 assistantMessage.getContent(),
                 List.of(),
                 modelResponse(),

@@ -359,6 +359,16 @@ textarea:focus {
   font-weight: 900;
 }
 
+.session-title {
+  justify-content: space-between;
+}
+
+.session-title span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .section-title .icon-button {
   margin-left: auto;
 }
@@ -401,7 +411,7 @@ textarea:focus {
 }
 
 .checkline strong,
-.session-list span,
+.session-button,
 .selected-docs span {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -417,12 +427,21 @@ textarea:focus {
   gap: 5px;
 }
 
-.session-list span {
+.session-button {
   padding: 8px 10px;
+  border: 0;
   border-left: 3px solid #0f766e;
+  border-radius: 0 8px 8px 0;
   color: #475569;
   background: #f8fafc;
   font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.session-button.active {
+  color: #0f766e;
+  background: #ecfdf5;
 }
 
 .logout {
@@ -502,6 +521,50 @@ h1 {
   padding: 18px;
   border: 1px solid #dfe5ec;
   border-radius: 8px;
+  background: #ffffff;
+}
+
+.chat-panel {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.message-list {
+  display: grid;
+  gap: 12px;
+}
+
+.chat-message {
+  display: grid;
+  gap: 7px;
+  max-width: min(760px, 92%);
+  padding: 12px 14px;
+  border: 1px solid #dfe5ec;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.chat-message strong {
+  color: #334155;
+  font-size: 13px;
+}
+
+.chat-message p {
+  margin: 0;
+  color: #1f2937;
+  line-height: 1.72;
+  white-space: pre-wrap;
+}
+
+.user-message {
+  justify-self: end;
+  border-color: rgba(15, 118, 110, 0.22);
+  background: #ecfdf5;
+}
+
+.assistant-message {
+  justify-self: start;
   background: #ffffff;
 }
 

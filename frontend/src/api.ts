@@ -1,4 +1,5 @@
 import type {
+  ChatMessage,
   ChatSession,
   DocumentDetail,
   DocumentItem,
@@ -65,13 +66,17 @@ export function deleteDocument(token: string, documentId: number) {
   return request<{ deleted: boolean }>(`/api/documents/${documentId}`, { method: 'DELETE' }, token);
 }
 
-export function queryDocuments(token: string, question: string, documentIds: number[]) {
+export function queryDocuments(token: string, question: string, documentIds: number[], sessionId?: number) {
   return request<QueryResponse>('/api/chat/query', {
     method: 'POST',
-    body: JSON.stringify({ question, documentIds }),
+    body: JSON.stringify({ question, documentIds, sessionId }),
   }, token);
 }
 
 export function fetchSessions(token: string) {
   return request<ChatSession[]>('/api/chat/sessions', {}, token);
+}
+
+export function fetchMessages(token: string, sessionId: number) {
+  return request<ChatMessage[]>(`/api/chat/sessions/${sessionId}/messages`, {}, token);
 }
