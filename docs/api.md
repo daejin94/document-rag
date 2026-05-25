@@ -199,16 +199,19 @@ Content-Type: application/json
 ```json
 {
   "question": "JWT 인증 흐름 설명해줘.",
-  "documentIds": [1]
+  "documentIds": [1],
+  "sessionId": null
 }
 ```
 
 `documentIds`가 비어 있거나 `null`이면 사용자 소유의 `COMPLETED` 문서 전체를 검색 대상으로 삼는다.
+`sessionId`가 `null`이거나 없으면 새 채팅 세션을 생성한다. 기존 세션 id를 보내면 해당 세션의 최근 대화 맥락을 함께 사용한다.
 
 응답:
 
 ```json
 {
+  "sessionId": 1,
   "answer": "답변 내용",
   "sources": [
     {
@@ -231,11 +234,13 @@ Content-Type: application/json
 }
 ```
 
-검색 결과가 없거나 similarity threshold를 넘지 못하면 `sources`는 빈 배열이고 아래 답변이 반환된다.
+새 세션에서 검색 결과가 없거나 similarity threshold를 넘지 못하면 `sources`는 빈 배열이고 아래 답변이 반환된다.
 
 ```text
 등록된 문서에서 관련 정보를 찾을 수 없습니다.
 ```
+
+기존 세션의 후속 질문인 경우 검색 결과가 threshold를 넘지 못해도 최근 대화 맥락을 기반으로 요약, 재설명, 형식 변경 같은 요청을 처리할 수 있다. 이때 새 문서 근거가 없으면 `sources`는 빈 배열이다.
 
 ### 채팅 세션 목록
 
@@ -251,7 +256,8 @@ Authorization: Bearer <ACCESS_TOKEN>
   {
     "sessionId": 1,
     "title": "JWT 인증 흐름 설명해줘.",
-    "createdAt": "2026-05-15T00:00:00Z"
+    "createdAt": "2026-05-15T00:00:00Z",
+    "updatedAt": "2026-05-15T00:00:01Z"
   }
 ]
 ```

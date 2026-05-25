@@ -15,6 +15,7 @@
 - PostgreSQL pgvector 기반 vector search
 - 검색된 chunk 기반 답변 생성
 - 답변 출처 반환
+- 채팅 세션 기반 후속 질문
 - 사용자별 문서 접근 제한
 - React 기반 테스트 화면
 
@@ -220,6 +221,19 @@ curl -X POST http://localhost:8080/api/chat/query \
   -d '{
     "question": "JWT 인증 흐름 설명해줘.",
     "documentIds": [1]
+  }'
+```
+
+응답의 `sessionId`를 다음 질문 요청에 포함하면 같은 대화 세션에서 이전 질문과 답변 맥락을 이어간다.
+
+```bash
+curl -X POST http://localhost:8080/api/chat/query \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "방금 답변을 더 쉽게 요약해줘.",
+    "documentIds": [1],
+    "sessionId": 1
   }'
 ```
 

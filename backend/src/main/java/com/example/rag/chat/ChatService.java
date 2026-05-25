@@ -23,6 +23,8 @@ import java.util.List;
 public class ChatService {
 
     private static final String NO_CONTEXT_ANSWER = "등록된 문서에서 관련 정보를 찾을 수 없습니다.";
+    private static final int SOURCE_PREVIEW_LENGTH = 160;
+    private static final int MAX_HISTORY_MESSAGES = 20;
 
     private final UserRepository userRepository;
     private final DocumentRepository documentRepository;
@@ -68,10 +70,13 @@ public class ChatService {
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "인증 사용자를 찾을 수 없습니다."));
         validateDocumentOwnership(userId, request.documentIds());
 
-        ChatSession session = chatSessionRepository.save(new ChatSession(user, titleFromQuestion(request.question())));
-        chatMessageRepository.save(new ChatMessage(session, MessageRole.USER, request.question()));
+        ChatSession session = resolveSession(user, request);
+        List<ChatMessage> history = recentHistory(session.getId());
 
-        List<Float> questionEmbedding = embeddingModelClient.embed(request.question());
+        chatMessageRepository.save(new ChatMessage(session, MessageRole.USER, request.question()));
+        session.markUpdated();
+
+        List<Float> questionEmbedding = embeddingModelClient.embed(promptBuilder.searchText(request.question(), history));
         List<SearchResult> searchResults = documentChunkJdbcRepository.search(
                 userId,
                 request.documentIds(),
@@ -79,40 +84,39 @@ public class ChatService {
                 ragProperties.topK()
         );
 
-        if (searchResults.isEmpty() || searchResults.getFirst().similarity() < ragProperties.similarityThreshold()) {
-            ChatMessage assistantMessage = chatMessageRepository.save(new ChatMessage(session, MessageRole.ASSISTANT, NO_CONTEXT_ANSWER));
-            return new QueryResponse(
-                    assistantMessage.getContent(),
-                    List.of(),
-                    new ModelResponse(chatModelClient.modelName(), embeddingModelClient.modelName()),
-                    new UsageResponse(0, 0)
-            );
+        boolean hasSearchContext = hasSearchContext(searchResults);
+        List<SearchResult> contextResults = hasSearchContext ? searchResults : List.of();
+        if (!hasSearchContext && history.isEmpty()) {
+            return noContextResponse(session);
         }
 
         ChatModelResult modelResult = chatModelClient.generate(new ChatModelRequest(
                 promptBuilder.systemPrompt(),
-                promptBuilder.userPrompt(request.question(), searchResults)
+                promptBuilder.userPrompt(request.question(), contextResults, history)
         ));
         ChatMessage assistantMessage = chatMessageRepository.save(new ChatMessage(session, MessageRole.ASSISTANT, modelResult.answer()));
+        session.markUpdated();
 
-        for (SearchResult result : searchResults) {
-            DocumentChunk chunk = documentChunkRepository.findById(result.chunkId())
-                    .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "검색된 chunk를 찾을 수 없습니다."));
-            answerSourceRepository.save(new AnswerSource(assistantMessage, chunk, result.similarity()));
-        }
+        saveAnswerSources(assistantMessage, contextResults);
 
         return new QueryResponse(
+                session.getId(),
                 modelResult.answer(),
-                searchResults.stream().map(this::toSourceResponse).toList(),
-                new ModelResponse(chatModelClient.modelName(), embeddingModelClient.modelName()),
+                contextResults.stream().map(this::toSourceResponse).toList(),
+                modelResponse(),
                 new UsageResponse(modelResult.promptTokens(), modelResult.completionTokens())
         );
     }
 
     @Transactional(readOnly = true)
     public List<ChatSessionResponse> sessions(Long userId) {
-        return chatSessionRepository.findAllByUserIdOrderByCreatedAtDesc(userId).stream()
-                .map(session -> new ChatSessionResponse(session.getId(), session.getTitle(), session.getCreatedAt()))
+        return chatSessionRepository.findAllByUserIdOrderByUpdatedAtDesc(userId).stream()
+                .map(session -> new ChatSessionResponse(
+                        session.getId(),
+                        session.getTitle(),
+                        session.getCreatedAt(),
+                        session.getUpdatedAt()
+                ))
                 .toList();
     }
 
@@ -141,18 +145,34 @@ public class ChatService {
         }
     }
 
-    private SourceResponse toSourceResponse(SearchResult result) {
-        String preview = result.content();
-        if (preview.length() > 160) {
-            preview = preview.substring(0, 160) + "...";
+    private ChatSession resolveSession(User user, QueryRequest request) {
+        if (request.sessionId() == null) {
+            return chatSessionRepository.save(new ChatSession(user, titleFromQuestion(request.question())));
         }
+        return chatSessionRepository.findByIdAndUserId(request.sessionId(), user.getId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "채팅 세션을 찾을 수 없습니다."));
+    }
+
+    private List<ChatMessage> recentHistory(Long sessionId) {
+        List<ChatMessage> messages = chatMessageRepository.findAllByChatSessionIdOrderByCreatedAtAsc(sessionId);
+        if (messages.size() <= MAX_HISTORY_MESSAGES) {
+            return messages;
+        }
+        return messages.subList(messages.size() - MAX_HISTORY_MESSAGES, messages.size());
+    }
+
+    private boolean hasSearchContext(List<SearchResult> searchResults) {
+        return !searchResults.isEmpty() && searchResults.getFirst().similarity() >= ragProperties.similarityThreshold();
+    }
+
+    private SourceResponse toSourceResponse(SearchResult result) {
         return new SourceResponse(
                 result.documentId(),
                 result.documentTitle(),
                 result.chunkId(),
                 result.chunkIndex(),
                 result.similarity(),
-                preview
+                preview(result.content())
         );
     }
 
@@ -177,10 +197,34 @@ public class ChatService {
     }
 
     private String preview(String content) {
-        if (content.length() <= 160) {
+        if (content.length() <= SOURCE_PREVIEW_LENGTH) {
             return content;
         }
-        return content.substring(0, 160) + "...";
+        return content.substring(0, SOURCE_PREVIEW_LENGTH) + "...";
+    }
+
+    private QueryResponse noContextResponse(ChatSession session) {
+        ChatMessage assistantMessage = chatMessageRepository.save(new ChatMessage(session, MessageRole.ASSISTANT, NO_CONTEXT_ANSWER));
+        session.markUpdated();
+        return new QueryResponse(
+                session.getId(),
+                assistantMessage.getContent(),
+                List.of(),
+                modelResponse(),
+                new UsageResponse(0, 0)
+        );
+    }
+
+    private void saveAnswerSources(ChatMessage assistantMessage, List<SearchResult> searchResults) {
+        for (SearchResult result : searchResults) {
+            DocumentChunk chunk = documentChunkRepository.findById(result.chunkId())
+                    .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "검색된 chunk를 찾을 수 없습니다."));
+            answerSourceRepository.save(new AnswerSource(assistantMessage, chunk, result.similarity()));
+        }
+    }
+
+    private ModelResponse modelResponse() {
+        return new ModelResponse(chatModelClient.modelName(), embeddingModelClient.modelName());
     }
 
     private String titleFromQuestion(String question) {

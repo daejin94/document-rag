@@ -6,6 +6,7 @@ import java.util.List;
 
 public record QueryRequest(
         @NotBlank String question,
-        List<Long> documentIds
+        List<Long> documentIds,
+        Long sessionId
 ) {
 }

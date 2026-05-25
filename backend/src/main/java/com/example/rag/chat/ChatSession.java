@@ -71,4 +71,12 @@ public class ChatSession {
     public Instant getCreatedAt() {
         return createdAt;
     }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void markUpdated() {
+        updatedAt = Instant.now();
+    }
 }

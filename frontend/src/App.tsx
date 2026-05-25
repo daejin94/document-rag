@@ -1,39 +1,40 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
   Bot,
-  Check,
   FileText,
   LogOut,
   MessageSquare,
+  Plus,
   RefreshCw,
   Search,
   Send,
   Shield,
   Trash2,
-  Upload,
-  UserPlus,
 } from 'lucide-react';
 import {
   deleteDocument,
   fetchDocumentDetail,
   fetchDocuments,
+  fetchMessages,
   fetchSessions,
-  login,
   queryDocuments,
-  signup,
-  uploadDocument,
 } from './api';
-import type { ChatSession, DocumentDetail, DocumentItem, QueryResponse } from './types';
-
-type AuthMode = 'login' | 'signup';
+import { AuthScreen } from './components/AuthScreen';
+import { UploadForm } from './components/UploadForm';
+import type { ChatMessage, ChatSession, DocumentDetail, DocumentItem } from './types';
 
 const tokenKey = 'document-rag-token';
 
 export function App() {
   const [token, setToken] = useState(() => localStorage.getItem(tokenKey) || '');
 
+  function handleAuthenticated(accessToken: string) {
+    localStorage.setItem(tokenKey, accessToken);
+    setToken(accessToken);
+  }
+
   if (!token) {
-    return <AuthScreen onAuthenticated={setToken} />;
+    return <AuthScreen onAuthenticated={handleAuthenticated} />;
   }
 
   return <Workspace token={token} onLogout={() => {
@@ -42,99 +43,14 @@ export function App() {
   }} />;
 }
 
-function AuthScreen({ onAuthenticated }: { onAuthenticated: (token: string) => void }) {
-  const [mode, setMode] = useState<AuthMode>('login');
-  const [email, setEmail] = useState('user@example.com');
-  const [password, setPassword] = useState('password1234');
-  const [name, setName] = useState('대진');
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    setError('');
-    setBusy(true);
-    try {
-      if (mode === 'signup') {
-        await signup(email, password, name);
-      }
-      const response = await login(email, password);
-      localStorage.setItem(tokenKey, response.accessToken);
-      onAuthenticated(response.accessToken);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '요청에 실패했습니다.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <main className="auth-shell">
-      <section className="auth-visual" aria-hidden="true">
-        <div className="document-stack">
-          <div className="paper paper-one">
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="paper paper-two">
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="vector-node node-a" />
-          <div className="vector-node node-b" />
-          <div className="vector-node node-c" />
-        </div>
-      </section>
-      <section className="auth-panel">
-        <div className="brand-row">
-          <Shield size={24} />
-          <span>Document RAG</span>
-        </div>
-        <div className="segmented">
-          <button className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')} type="button">
-            <Bot size={16} />
-            로그인
-          </button>
-          <button className={mode === 'signup' ? 'active' : ''} onClick={() => setMode('signup')} type="button">
-            <UserPlus size={16} />
-            회원가입
-          </button>
-        </div>
-        <form className="auth-form" onSubmit={submit}>
-          {mode === 'signup' && (
-            <label>
-              이름
-              <input value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" />
-            </label>
-          )}
-          <label>
-            이메일
-            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" />
-          </label>
-          <label>
-            비밀번호
-            <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" />
-          </label>
-          {error && <p className="error-text">{error}</p>}
-          <button className="primary-button" disabled={busy} type="submit">
-            {busy ? <RefreshCw className="spin" size={18} /> : <Check size={18} />}
-            {mode === 'login' ? '로그인' : '가입 후 로그인'}
-          </button>
-        </form>
-      </section>
-    </main>
-  );
-}
-
 function Workspace({ token, onLogout }: { token: string; onLogout: () => void }) {
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [detail, setDetail] = useState<DocumentDetail | null>(null);
   const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState<QueryResponse | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -142,6 +58,11 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
     () => documents.filter((document) => selectedIds.includes(document.documentId)),
     [documents, selectedIds],
   );
+
+  const latestSources = useMemo(() => {
+    const assistantMessage = [...messages].reverse().find((message) => message.role === 'ASSISTANT');
+    return assistantMessage?.sources ?? [];
+  }, [messages]);
 
   async function refresh() {
     setError('');
@@ -171,6 +92,27 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
     }
   }
 
+  async function openSession(sessionId: number) {
+    setError('');
+    setBusy(true);
+    try {
+      const sessionMessages = await fetchMessages(token, sessionId);
+      setCurrentSessionId(sessionId);
+      setMessages(sessionMessages);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '대화 내역 조회에 실패했습니다.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function startNewSession() {
+    setCurrentSessionId(null);
+    setMessages([]);
+    setQuestion('');
+    setError('');
+  }
+
   async function remove(documentId: number) {
     setError('');
     try {
@@ -191,10 +133,25 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
     }
     setBusy(true);
     setError('');
-    setAnswer(null);
+    const userMessage: ChatMessage = {
+      role: 'USER',
+      content: question.trim(),
+      sources: [],
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((current) => [...current, userMessage]);
     try {
-      const response = await queryDocuments(token, question, selectedIds);
-      setAnswer(response);
+      const response = await queryDocuments(token, userMessage.content, selectedIds, currentSessionId ?? undefined);
+      setCurrentSessionId(response.sessionId);
+      setMessages((current) => [
+        ...current,
+        {
+          role: 'ASSISTANT',
+          content: response.answer,
+          sources: response.sources,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
       setQuestion('');
       await refresh();
     } catch (err) {
@@ -256,14 +213,27 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
           </div>
         </section>
         <section className="side-section compact">
-          <div className="section-title">
-            <MessageSquare size={17} />
-            세션
+          <div className="section-title session-title">
+            <span>
+              <MessageSquare size={17} />
+              세션
+            </span>
+            <button className="icon-button" onClick={startNewSession} title="새 대화" type="button">
+              <Plus size={15} />
+            </button>
           </div>
           <div className="session-list">
             {sessions.slice(0, 6).map((session) => (
-              <span key={session.sessionId}>{session.title}</span>
+              <button
+                className={session.sessionId === currentSessionId ? 'session-button active' : 'session-button'}
+                key={session.sessionId}
+                onClick={() => openSession(session.sessionId)}
+                type="button"
+              >
+                {session.title}
+              </button>
             ))}
+            {sessions.length === 0 && <p className="empty-text">대화 없음</p>}
           </div>
         </section>
         <button className="ghost-button logout" onClick={onLogout} type="button">
@@ -276,7 +246,7 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
         <header className="topbar">
           <div>
             <p className="eyebrow">RAG Query</p>
-            <h1>문서 기반 질문</h1>
+            <h1>문서 기반 대화</h1>
           </div>
           <div className="selected-docs">
             {selectedDocuments.length === 0 ? (
@@ -303,22 +273,25 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
         </form>
 
         <section className="result-layout">
-          <article className="answer-panel">
+          <article className="answer-panel chat-panel">
             <div className="section-title">
               <Bot size={18} />
-              답변
+              대화
             </div>
-            {answer ? (
-              <>
-                <p className="answer-text">{answer.answer}</p>
-                <div className="meta-line">
-                  <span>{answer.model.chatModel}</span>
-                  <span>{answer.model.embeddingModel}</span>
-                  <span>{answer.usage.promptTokens + answer.usage.completionTokens} tokens</span>
-                </div>
-              </>
+            {messages.length > 0 ? (
+              <div className="message-list">
+                {messages.map((message, index) => (
+                  <div
+                    className={message.role === 'USER' ? 'chat-message user-message' : 'chat-message assistant-message'}
+                    key={`${message.createdAt}-${index}`}
+                  >
+                    <strong>{message.role === 'USER' ? '나' : 'AI'}</strong>
+                    <p>{message.content}</p>
+                  </div>
+                ))}
+              </div>
             ) : (
-              <p className="empty-text">대기 중</p>
+              <p className="empty-text">새 질문으로 대화를 시작하세요.</p>
             )}
           </article>
 
@@ -327,14 +300,14 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
               <FileText size={18} />
               출처
             </div>
-            {answer?.sources.map((source) => (
+            {latestSources.map((source) => (
               <div className="source-item" key={source.chunkId}>
                 <strong>{source.documentTitle}</strong>
                 <small>chunk {source.chunkIndex} · {(source.similarity * 100).toFixed(1)}%</small>
                 <p>{source.contentPreview}</p>
               </div>
             ))}
-            {(!answer || answer.sources.length === 0) && <p className="empty-text">출처 없음</p>}
+            {latestSources.length === 0 && <p className="empty-text">출처 없음</p>}
           </article>
         </section>
 
@@ -348,84 +321,5 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
         )}
       </section>
     </main>
-  );
-}
-
-function UploadForm({ token, onUploaded }: { token: string; onUploaded: () => Promise<void> }) {
-  const [title, setTitle] = useState('');
-  const [file, setFile] = useState<File | null>(null);
-  const [fileInputKey, setFileInputKey] = useState(0);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    if (!title.trim()) {
-      setError('제목을 입력해주세요.');
-      return;
-    }
-    if (!file) {
-      setError('파일을 선택해주세요.');
-      return;
-    }
-    setBusy(true);
-    setError('');
-    try {
-      await uploadDocument(token, title, file);
-      setTitle('');
-      setFile(null);
-      setFileInputKey((value) => value + 1);
-      await onUploaded();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '업로드에 실패했습니다.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <form className="upload-form" onSubmit={submit}>
-      <label>
-        제목
-        <input
-          disabled={busy}
-          value={title}
-          onChange={(event) => {
-            setTitle(event.target.value);
-            if (error) {
-              setError('');
-            }
-          }}
-        />
-      </label>
-      <label>
-        파일
-        <input
-          accept=".txt,.md,.markdown,.pdf,text/plain,text/markdown,application/pdf"
-          disabled={busy}
-          key={fileInputKey}
-          onChange={(event) => {
-            setFile(event.target.files?.[0] || null);
-            if (error) {
-              setError('');
-            }
-          }}
-          type="file"
-        />
-      </label>
-      {busy && (
-        <div className="upload-progress" aria-live="polite" role="status">
-          <div className="upload-progress-track">
-            <span />
-          </div>
-          <p>문서 업로드 중입니다.</p>
-        </div>
-      )}
-      {error && <p className="error-text">{error}</p>}
-      <button className="primary-button" disabled={busy} type="submit">
-        {busy ? <RefreshCw className="spin" size={17} /> : <Upload size={17} />}
-        {busy ? '업로드 중' : '업로드'}
-      </button>
-    </form>
   );
 }

@@ -33,6 +33,7 @@ export interface Source {
 }
 
 export interface QueryResponse {
+  sessionId: number;
   answer: string;
   sources: Source[];
   model: {
@@ -48,5 +49,15 @@ export interface QueryResponse {
 export interface ChatSession {
   sessionId: number;
   title: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type MessageRole = 'USER' | 'ASSISTANT';
+
+export interface ChatMessage {
+  role: MessageRole;
+  content: string;
+  sources: Source[];
   createdAt: string;
 }
