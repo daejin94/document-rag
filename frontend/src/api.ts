@@ -72,6 +72,10 @@ export function addProjectMember(token: string, projectId: number, email: string
   }, token);
 }
 
+export function deleteProjectMember(token: string, projectId: number, memberUserId: number) {
+  return request<{ deleted: boolean }>(`/api/projects/${projectId}/members/${memberUserId}`, { method: 'DELETE' }, token);
+}
+
 export function fetchDocuments(token: string, projectId: number) {
   return request<DocumentItem[]>(`/api/projects/${projectId}/documents`, {}, token);
 }

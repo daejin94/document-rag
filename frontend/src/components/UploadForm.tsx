@@ -6,9 +6,10 @@ interface UploadFormProps {
   token: string;
   projectId: number | null;
   onUploaded: () => Promise<void>;
+  onComplete?: () => void;
 }
 
-export function UploadForm({ token, projectId, onUploaded }: UploadFormProps) {
+export function UploadForm({ token, projectId, onUploaded, onComplete }: UploadFormProps) {
   const [title, setTitle] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
@@ -37,6 +38,7 @@ export function UploadForm({ token, projectId, onUploaded }: UploadFormProps) {
       setFile(null);
       setFileInputKey((value) => value + 1);
       await onUploaded();
+      onComplete?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : '업로드에 실패했습니다.');
     } finally {

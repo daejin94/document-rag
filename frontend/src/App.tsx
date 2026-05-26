@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, type ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   Bot,
   FileText,
@@ -11,13 +11,16 @@ import {
   Send,
   Shield,
   Trash2,
+  Upload,
   UserPlus,
   Users,
+  X,
 } from 'lucide-react';
 import {
   addProjectMember,
   createProject,
   deleteDocument,
+  deleteProjectMember,
   fetchDocumentDetail,
   fetchDocuments,
   fetchMessages,
@@ -73,7 +76,10 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
   const [memberRole, setMemberRole] = useState<ProjectRole>('MEMBER');
   const [question, setQuestion] = useState('');
   const [error, setError] = useState('');
+  const [memberError, setMemberError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [isUploadModalOpen, setUploadModalOpen] = useState(false);
+  const [isMemberModalOpen, setMemberModalOpen] = useState(false);
 
   const currentProject = useMemo(
     () => projects.find((project) => project.projectId === currentProjectId) ?? null,
@@ -169,21 +175,40 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
   async function submitMember(event: FormEvent) {
     event.preventDefault();
     if (!currentProjectId) {
-      setError('프로젝트를 먼저 선택해주세요.');
+      setMemberError('프로젝트를 먼저 선택해주세요.');
       return;
     }
     if (!memberEmail.trim()) {
-      setError('이메일을 입력해주세요.');
+      setMemberError('이메일을 입력해주세요.');
       return;
     }
-    setError('');
+    setMemberError('');
     try {
       await addProjectMember(token, currentProjectId, memberEmail.trim(), memberRole);
       setMemberEmail('');
       setMemberRole('MEMBER');
       setMembers(await fetchProjectMembers(token, currentProjectId));
     } catch (err) {
-      setError(err instanceof Error ? err.message : '멤버 추가에 실패했습니다.');
+      setMemberError(err instanceof Error ? err.message : '멤버 추가에 실패했습니다.');
+    }
+  }
+
+  async function removeMember(memberUserId: number) {
+    if (!currentProjectId) {
+      setMemberError('프로젝트를 먼저 선택해주세요.');
+      return;
+    }
+    if (!isProjectAdmin) {
+      setMemberError('프로젝트 관리자만 수행할 수 있습니다.');
+      return;
+    }
+    setMemberError('');
+    try {
+      await deleteProjectMember(token, currentProjectId, memberUserId);
+      setMembers(await fetchProjectMembers(token, currentProjectId));
+      setProjects(await fetchProjects(token));
+    } catch (err) {
+      setMemberError(err instanceof Error ? err.message : '멤버 삭제에 실패했습니다.');
     }
   }
 
@@ -332,42 +357,6 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
           </div>
         </section>
 
-        <UploadForm token={token} projectId={currentProjectId} onUploaded={refresh} />
-
-        {currentProject && (
-          <section className="side-section compact">
-            <div className="section-title">
-              <Users size={17} />
-              멤버
-            </div>
-            {isProjectAdmin && (
-              <form className="member-form" onSubmit={submitMember}>
-                <input
-                  value={memberEmail}
-                  onChange={(event) => setMemberEmail(event.target.value)}
-                  placeholder="user@example.com"
-                  type="email"
-                />
-                <select value={memberRole} onChange={(event) => setMemberRole(event.target.value as ProjectRole)}>
-                  <option value="MEMBER">MEMBER</option>
-                  <option value="ADMIN">ADMIN</option>
-                </select>
-                <button className="icon-button" title="멤버 추가" type="submit">
-                  <UserPlus size={15} />
-                </button>
-              </form>
-            )}
-            <div className="member-list">
-              {members.map((member) => (
-                <div className="member-row" key={member.userId}>
-                  <strong>{member.name}</strong>
-                  <small>{member.role} · {member.email}</small>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
         <section className="side-section">
           <div className="section-title">
             <FileText size={17} />
@@ -443,12 +432,37 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
             <p className="eyebrow">RAG Query</p>
             <h1>{currentProject ? currentProject.name : '문서 기반 대화'}</h1>
           </div>
-          <div className="selected-docs">
-            {selectedDocuments.length === 0 ? (
-              <span>전체 문서</span>
-            ) : selectedDocuments.map((document) => (
-              <span key={document.documentId}>{document.title}</span>
-            ))}
+          <div className="topbar-side">
+            <div className="topbar-actions">
+              <button
+                className="ghost-button action-button"
+                disabled={!currentProjectId}
+                onClick={() => setUploadModalOpen(true)}
+                type="button"
+              >
+                <Upload size={16} />
+                파일 등록
+              </button>
+              <button
+                className="ghost-button action-button"
+                disabled={!currentProjectId}
+                onClick={() => {
+                  setMemberError('');
+                  setMemberModalOpen(true);
+                }}
+                type="button"
+              >
+                <Users size={16} />
+                멤버 관리
+              </button>
+            </div>
+            <div className="selected-docs">
+              {selectedDocuments.length === 0 ? (
+                <span>전체 문서</span>
+              ) : selectedDocuments.map((document) => (
+                <span key={document.documentId}>{document.title}</span>
+              ))}
+            </div>
           </div>
         </header>
 
@@ -515,6 +529,102 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
           </section>
         )}
       </section>
+
+      {isUploadModalOpen && (
+        <Modal title="파일 등록" onClose={() => setUploadModalOpen(false)}>
+          <UploadForm
+            token={token}
+            projectId={currentProjectId}
+            onUploaded={refresh}
+            onComplete={() => setUploadModalOpen(false)}
+          />
+        </Modal>
+      )}
+
+      {isMemberModalOpen && (
+        <Modal title="멤버 관리" onClose={() => {
+          setMemberError('');
+          setMemberModalOpen(false);
+        }}>
+          <div className="member-management">
+            <section className="member-management-section">
+              <div className="section-title">
+                <Users size={17} />
+                멤버 목록
+              </div>
+              <div className="member-list">
+                {members.map((member) => (
+                  <div className="member-row" key={member.userId}>
+                    <span>
+                      <strong>{member.name}</strong>
+                      <small>{member.role} · {member.email}</small>
+                    </span>
+                    {isProjectAdmin && (
+                      <button className="icon-button danger" onClick={() => removeMember(member.userId)} title="멤버 삭제" type="button">
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {members.length === 0 && <p className="empty-text">멤버 없음</p>}
+              </div>
+            </section>
+
+            {isProjectAdmin && (
+              <section className="member-management-section">
+                <div className="section-title">
+                  <UserPlus size={17} />
+                  멤버 추가
+                </div>
+                <form className="member-form modal-form" onSubmit={submitMember}>
+                  {memberError && <p className="error-text">{memberError}</p>}
+                  <label>
+                    이메일
+                    <input
+                      value={memberEmail}
+                      onChange={(event) => {
+                        setMemberEmail(event.target.value);
+                        if (memberError) {
+                          setMemberError('');
+                        }
+                      }}
+                      placeholder="user@example.com"
+                      type="email"
+                    />
+                  </label>
+                  <label>
+                    역할
+                    <select value={memberRole} onChange={(event) => setMemberRole(event.target.value as ProjectRole)}>
+                      <option value="MEMBER">MEMBER</option>
+                      <option value="ADMIN">ADMIN</option>
+                    </select>
+                  </label>
+                  <button className="primary-button" disabled={!currentProjectId} type="submit">
+                    <UserPlus size={17} />
+                    추가
+                  </button>
+                </form>
+              </section>
+            )}
+          </div>
+        </Modal>
+      )}
     </main>
+  );
+}
+
+function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <section className="modal-panel" aria-modal="true" role="dialog">
+        <div className="modal-header">
+          <h2>{title}</h2>
+          <button className="icon-button" onClick={onClose} title="닫기" type="button">
+            <X size={16} />
+          </button>
+        </div>
+        {children}
+      </section>
+    </div>
   );
 }
