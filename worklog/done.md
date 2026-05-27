@@ -1,5 +1,14 @@
 # 작업 완료
 
+## 프론트 구조 리팩터링
+
+- 시작일: 2026-05-27
+- 완료일: 2026-05-27
+- 목적: 기능 변화 없이 프론트엔드 화면/상태/API 호출 구조를 기존 동작 기준으로 정리한다.
+- 현재 상태: 완료. `App.tsx`에 집중되어 있던 모달, 사이드바, 메인 대화 영역, 멤버 관리 UI를 별도 컴포넌트로 분리하고 기존 상태/API 호출 흐름은 유지했다.
+- 다음 작업: 필요 시 `Workspace`의 프로젝트/문서/세션/질문 상태 로직을 custom hook 단위로 추가 분리한다.
+- 관련 파일: frontend/src/App.tsx, frontend/src/components/Modal.tsx, frontend/src/components/WorkspaceSidebar.tsx, frontend/src/components/WorkspaceMain.tsx, frontend/src/components/MemberManagement.tsx
+
 ## 관리자 멤버 삭제 기능 추가
 
 - 시작일: 2026-05-26

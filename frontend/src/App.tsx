@@ -1,21 +1,4 @@
-import { FormEvent, type ReactNode, useEffect, useMemo, useState } from 'react';
-import {
-  Bot,
-  FileText,
-  Folder,
-  LogOut,
-  MessageSquare,
-  Plus,
-  RefreshCw,
-  Search,
-  Send,
-  Shield,
-  Trash2,
-  Upload,
-  UserPlus,
-  Users,
-  X,
-} from 'lucide-react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
   addProjectMember,
   createProject,
@@ -30,7 +13,11 @@ import {
   queryDocuments,
 } from './api';
 import { AuthScreen } from './components/AuthScreen';
+import { MemberManagement } from './components/MemberManagement';
+import { Modal } from './components/Modal';
 import { UploadForm } from './components/UploadForm';
+import { WorkspaceMain } from './components/WorkspaceMain';
+import { WorkspaceSidebar } from './components/WorkspaceSidebar';
 import type {
   ChatMessage,
   ChatSession,
@@ -318,217 +305,61 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
     ));
   }
 
+  function updateMemberEmail(email: string) {
+    setMemberEmail(email);
+    if (memberError) {
+      setMemberError('');
+    }
+  }
+
+  function openMemberModal() {
+    setMemberError('');
+    setMemberModalOpen(true);
+  }
+
+  function closeMemberModal() {
+    setMemberError('');
+    setMemberModalOpen(false);
+  }
+
   return (
     <main className="workspace">
-      <aside className="sidebar">
-        <div className="brand-row">
-          <Shield size={22} />
-          <span>Document RAG</span>
-        </div>
+      <WorkspaceSidebar
+        projects={projects}
+        documents={documents}
+        sessions={sessions}
+        currentProjectId={currentProjectId}
+        currentSessionId={currentSessionId}
+        projectName={projectName}
+        selectedIds={selectedIds}
+        isProjectAdmin={isProjectAdmin}
+        onProjectNameChange={setProjectName}
+        onSubmitProject={submitProject}
+        onSelectProject={selectProject}
+        onRefresh={refresh}
+        onToggleDocument={toggle}
+        onInspectDocument={inspect}
+        onRemoveDocument={remove}
+        onStartNewSession={startNewSession}
+        onOpenSession={openSession}
+        onLogout={onLogout}
+      />
 
-        <section className="side-section">
-          <div className="section-title">
-            <Folder size={17} />
-            프로젝트
-          </div>
-          <form className="project-form" onSubmit={submitProject}>
-            <input
-              value={projectName}
-              onChange={(event) => setProjectName(event.target.value)}
-              placeholder="프로젝트 이름"
-            />
-            <button className="icon-button" title="프로젝트 생성" type="submit">
-              <Plus size={15} />
-            </button>
-          </form>
-          <div className="project-list">
-            {projects.map((project) => (
-              <button
-                className={project.projectId === currentProjectId ? 'project-button active' : 'project-button'}
-                key={project.projectId}
-                onClick={() => selectProject(project.projectId)}
-                type="button"
-              >
-                <strong>{project.name}</strong>
-                <small>{project.role}</small>
-              </button>
-            ))}
-            {projects.length === 0 && <p className="empty-text">프로젝트 없음</p>}
-          </div>
-        </section>
-
-        <section className="side-section">
-          <div className="section-title">
-            <FileText size={17} />
-            문서
-            <button className="icon-button" onClick={refresh} title="새로고침" type="button">
-              <RefreshCw size={16} />
-            </button>
-          </div>
-          <div className="document-list">
-            {documents.map((document) => (
-              <article className="document-row" key={document.documentId}>
-                <label className="checkline">
-                  <input
-                    checked={selectedIds.includes(document.documentId)}
-                    onChange={() => toggle(document.documentId)}
-                    type="checkbox"
-                  />
-                  <span>
-                    <strong>{document.title}</strong>
-                    <small>{document.status} · {document.originalFileName}</small>
-                  </span>
-                </label>
-                <div className="row-tools">
-                  <button className="icon-button" onClick={() => inspect(document.documentId)} title="상세" type="button">
-                    <Search size={15} />
-                  </button>
-                  {isProjectAdmin && (
-                    <button className="icon-button danger" onClick={() => remove(document.documentId)} title="삭제" type="button">
-                      <Trash2 size={15} />
-                    </button>
-                  )}
-                </div>
-              </article>
-            ))}
-            {documents.length === 0 && <p className="empty-text">문서 없음</p>}
-          </div>
-        </section>
-
-        <section className="side-section compact">
-          <div className="section-title session-title">
-            <span>
-              <MessageSquare size={17} />
-              세션
-            </span>
-            <button className="icon-button" onClick={startNewSession} title="새 대화" type="button">
-              <Plus size={15} />
-            </button>
-          </div>
-          <div className="session-list">
-            {sessions.slice(0, 6).map((session) => (
-              <button
-                className={session.sessionId === currentSessionId ? 'session-button active' : 'session-button'}
-                key={session.sessionId}
-                onClick={() => openSession(session.sessionId)}
-                type="button"
-              >
-                {session.title}
-              </button>
-            ))}
-            {sessions.length === 0 && <p className="empty-text">대화 없음</p>}
-          </div>
-        </section>
-
-        <button className="ghost-button logout" onClick={onLogout} type="button">
-          <LogOut size={17} />
-          로그아웃
-        </button>
-      </aside>
-
-      <section className="main-panel">
-        <header className="topbar">
-          <div>
-            <p className="eyebrow">RAG Query</p>
-            <h1>{currentProject ? currentProject.name : '문서 기반 대화'}</h1>
-          </div>
-          <div className="topbar-side">
-            <div className="topbar-actions">
-              <button
-                className="ghost-button action-button"
-                disabled={!currentProjectId}
-                onClick={() => setUploadModalOpen(true)}
-                type="button"
-              >
-                <Upload size={16} />
-                파일 등록
-              </button>
-              <button
-                className="ghost-button action-button"
-                disabled={!currentProjectId}
-                onClick={() => {
-                  setMemberError('');
-                  setMemberModalOpen(true);
-                }}
-                type="button"
-              >
-                <Users size={16} />
-                멤버 관리
-              </button>
-            </div>
-            <div className="selected-docs">
-              {selectedDocuments.length === 0 ? (
-                <span>전체 문서</span>
-              ) : selectedDocuments.map((document) => (
-                <span key={document.documentId}>{document.title}</span>
-              ))}
-            </div>
-          </div>
-        </header>
-
-        {error && <p className="error-banner">{error}</p>}
-
-        <form className="query-box" onSubmit={ask}>
-          <textarea
-            value={question}
-            onChange={(event) => setQuestion(event.target.value)}
-            placeholder="JWT 인증 흐름 설명해줘."
-            rows={4}
-          />
-          <button className="primary-button send-button" disabled={busy || !currentProjectId} type="submit">
-            {busy ? <RefreshCw className="spin" size={18} /> : <Send size={18} />}
-            질문
-          </button>
-        </form>
-
-        <section className="result-layout">
-          <article className="answer-panel chat-panel">
-            <div className="section-title">
-              <Bot size={18} />
-              대화
-            </div>
-            {messages.length > 0 ? (
-              <div className="message-list">
-                {messages.map((message, index) => (
-                  <div
-                    className={message.role === 'USER' ? 'chat-message user-message' : 'chat-message assistant-message'}
-                    key={`${message.createdAt}-${index}`}
-                  >
-                    <strong>{message.role === 'USER' ? '나' : 'AI'}</strong>
-                    <p>{message.content}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="empty-text">새 질문으로 대화를 시작하세요.</p>
-            )}
-          </article>
-
-          <article className="source-panel">
-            <div className="section-title">
-              <FileText size={18} />
-              출처
-            </div>
-            {latestSources.map((source) => (
-              <div className="source-item" key={source.chunkId}>
-                <strong>{source.documentTitle}</strong>
-                <small>chunk {source.chunkIndex} · {(source.similarity * 100).toFixed(1)}%</small>
-                <p>{source.contentPreview}</p>
-              </div>
-            ))}
-            {latestSources.length === 0 && <p className="empty-text">출처 없음</p>}
-          </article>
-        </section>
-
-        {detail && (
-          <section className="detail-strip">
-            <strong>{detail.title}</strong>
-            <span>{detail.originalFileName}</span>
-            <span>{detail.status}</span>
-            <span>{detail.chunkCount} chunks</span>
-          </section>
-        )}
-      </section>
+      <WorkspaceMain
+        currentProject={currentProject}
+        currentProjectId={currentProjectId}
+        selectedDocuments={selectedDocuments}
+        messages={messages}
+        latestSources={latestSources}
+        detail={detail}
+        question={question}
+        error={error}
+        busy={busy}
+        onQuestionChange={setQuestion}
+        onAsk={ask}
+        onOpenUploadModal={() => setUploadModalOpen(true)}
+        onOpenMemberModal={openMemberModal}
+      />
 
       {isUploadModalOpen && (
         <Modal title="파일 등록" onClose={() => setUploadModalOpen(false)}>
@@ -542,89 +373,21 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
       )}
 
       {isMemberModalOpen && (
-        <Modal title="멤버 관리" onClose={() => {
-          setMemberError('');
-          setMemberModalOpen(false);
-        }}>
-          <div className="member-management">
-            <section className="member-management-section">
-              <div className="section-title">
-                <Users size={17} />
-                멤버 목록
-              </div>
-              <div className="member-list">
-                {members.map((member) => (
-                  <div className="member-row" key={member.userId}>
-                    <span>
-                      <strong>{member.name}</strong>
-                      <small>{member.role} · {member.email}</small>
-                    </span>
-                    {isProjectAdmin && (
-                      <button className="icon-button danger" onClick={() => removeMember(member.userId)} title="멤버 삭제" type="button">
-                        <Trash2 size={15} />
-                      </button>
-                    )}
-                  </div>
-                ))}
-                {members.length === 0 && <p className="empty-text">멤버 없음</p>}
-              </div>
-            </section>
-
-            {isProjectAdmin && (
-              <section className="member-management-section">
-                <div className="section-title">
-                  <UserPlus size={17} />
-                  멤버 추가
-                </div>
-                <form className="member-form modal-form" onSubmit={submitMember}>
-                  {memberError && <p className="error-text">{memberError}</p>}
-                  <label>
-                    이메일
-                    <input
-                      value={memberEmail}
-                      onChange={(event) => {
-                        setMemberEmail(event.target.value);
-                        if (memberError) {
-                          setMemberError('');
-                        }
-                      }}
-                      placeholder="user@example.com"
-                      type="email"
-                    />
-                  </label>
-                  <label>
-                    역할
-                    <select value={memberRole} onChange={(event) => setMemberRole(event.target.value as ProjectRole)}>
-                      <option value="MEMBER">MEMBER</option>
-                      <option value="ADMIN">ADMIN</option>
-                    </select>
-                  </label>
-                  <button className="primary-button" disabled={!currentProjectId} type="submit">
-                    <UserPlus size={17} />
-                    추가
-                  </button>
-                </form>
-              </section>
-            )}
-          </div>
+        <Modal title="멤버 관리" onClose={closeMemberModal}>
+          <MemberManagement
+            members={members}
+            isProjectAdmin={isProjectAdmin}
+            currentProjectId={currentProjectId}
+            memberEmail={memberEmail}
+            memberRole={memberRole}
+            memberError={memberError}
+            onMemberEmailChange={updateMemberEmail}
+            onMemberRoleChange={setMemberRole}
+            onSubmitMember={submitMember}
+            onRemoveMember={removeMember}
+          />
         </Modal>
       )}
     </main>
-  );
-}
-
-function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
-  return (
-    <div className="modal-backdrop" role="presentation">
-      <section className="modal-panel" aria-modal="true" role="dialog">
-        <div className="modal-header">
-          <h2>{title}</h2>
-          <button className="icon-button" onClick={onClose} title="닫기" type="button">
-            <X size={16} />
-          </button>
-        </div>
-        {children}
-      </section>
-    </div>
   );
 }
