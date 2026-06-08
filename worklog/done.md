@@ -1,5 +1,59 @@
 # 작업 완료
 
+## Supabase Session pooler 전환
+
+- 시작일: 2026-06-08
+- 완료일: 2026-06-08
+- 목적: Supabase DB 연결을 Direct에서 Session pooler 방식으로 변경한다.
+- 현재 상태: 완료. `.env`, `.env.prod`, `.env.example`의 활성 DB 연결을 Supabase Session pooler로 변경하고 Direct 및 Docker Postgres 연결은 주석 예시로 남겼다.
+- 다음 작업: 백엔드 실행으로 Flyway 마이그레이션과 DB 연결을 확인한다.
+- 관련 파일: .env, .env.prod, .env.example
+
+## 로컬 환경 DB 연결 전환
+
+- 시작일: 2026-06-08
+- 완료일: 2026-06-08
+- 목적: 기존 `.env`의 DB 연결을 Supabase Direct 기준으로 바꾸고 Docker Postgres 설정은 주석으로 보존한다.
+- 현재 상태: 완료. `.env`의 활성 DB 연결은 Supabase Direct로 변경하고, 기존 Docker Postgres 연결값은 주석으로 남겼다.
+- 다음 작업: 실제 접속 전 `.env`의 `SPRING_DATASOURCE_PASSWORD`를 Supabase DB 비밀번호로 교체한다.
+- 관련 파일: .env
+
+## 환경변수 예시 통합
+
+- 시작일: 2026-06-08
+- 완료일: 2026-06-08
+- 목적: 로컬과 운영에서 공통으로 참고할 환경변수 예시를 `.env.example` 하나로 통합한다.
+- 현재 상태: 완료. `.env.example`에 OpenAI, JWT, Supabase DB, Supabase Storage, RAG 환경변수를 통합하고 `.env.prod.example`은 제거했다.
+- 다음 작업: 실제 환경별 값은 `.env` 또는 `.env.prod`에만 작성한다.
+- 관련 파일: .env.example, .env.prod.example
+
+## 운영 환경변수 파일 분리
+
+- 시작일: 2026-06-08
+- 완료일: 2026-06-08
+- 목적: 실제 운영 설정은 `.env.prod`에 두고 `.env.prod.example`은 템플릿으로 유지한다.
+- 현재 상태: 완료. `.env.prod`에 Supabase Direct 연결 값을 두고, `.env.prod.example`은 project ref placeholder를 사용하는 예시 파일로 되돌렸다.
+- 다음 작업: 실제 운영 환경에서 `.env.prod`의 `SPRING_DATASOURCE_PASSWORD`를 실제 DB 비밀번호로 교체한다.
+- 관련 파일: .env.prod, .env.prod.example
+
+## Supabase Direct URL 반영
+
+- 시작일: 2026-06-08
+- 완료일: 2026-06-08
+- 목적: 사용자가 복사한 Supabase Direct connection URL 기준으로 운영 환경변수 예시를 수정한다.
+- 현재 상태: 완료. 이후 실제 운영 값은 `.env.prod`로 분리하고, `.env.prod.example`은 placeholder 기반 템플릿으로 되돌렸다.
+- 다음 작업: 실제 운영 환경에서 `SPRING_DATASOURCE_PASSWORD`를 설정하고 연결을 확인한다.
+- 관련 파일: .env.prod, .env.prod.example
+
+## 운영 설정 파일 추가
+
+- 시작일: 2026-06-08
+- 완료일: 2026-06-08
+- 목적: Supabase Direct DB 연결을 사용하는 운영 환경변수 예시를 추가한다.
+- 현재 상태: 완료. `.env.prod.example`에 Supabase Direct JDBC 연결과 HikariCP 최소 설정을 추가하고, 실제 운영 env 파일은 git 추적에서 제외했다.
+- 다음 작업: Cloud Run 배포 시 실제 DB 비밀번호와 secret 값을 환경변수 또는 Secret Manager에 설정한다.
+- 관련 파일: .env.prod.example, .gitignore
+
 ## 프론트 구조 리팩터링
 
 - 시작일: 2026-05-27
