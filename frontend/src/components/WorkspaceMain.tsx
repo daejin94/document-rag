@@ -1,5 +1,7 @@
 import type { FormEventHandler } from 'react';
 import { Bot, FileText, RefreshCw, Send, Upload, Users } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { ChatMessage, DocumentDetail, DocumentItem, Project, Source } from '../types';
 
 interface WorkspaceMainProps {
@@ -100,7 +102,13 @@ export function WorkspaceMain({
                   key={`${message.createdAt}-${index}`}
                 >
                   <strong>{message.role === 'USER' ? '나' : 'AI'}</strong>
-                  <p>{message.content}</p>
+                  {message.role === 'ASSISTANT' ? (
+                    <div className="markdown-content">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="plain-message">{message.content}</p>
+                  )}
                 </div>
               ))}
             </div>

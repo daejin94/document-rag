@@ -1,5 +1,14 @@
 # 작업 완료
 
+## 답변 Markdown 렌더링 적용
+
+- 시작일: 2026-06-08
+- 완료일: 2026-06-08
+- 목적: 질문 답변 영역에서 Markdown 문법이 화면에 렌더링되도록 변경한다.
+- 현재 상태: 완료. AI 답변 메시지에 Markdown/GFM 렌더러를 적용하고, 목록/코드/표/인용문 스타일을 채팅 영역에 맞게 추가했다.
+- 다음 작업: 실제 질문 응답에서 Markdown 답변 표시를 수동 확인한다.
+- 관련 파일: frontend/package.json, frontend/package-lock.json, frontend/src/components/WorkspaceMain.tsx, frontend/src/styles.css
+
 ## Supabase Session pooler 전환
 
 - 시작일: 2026-06-08
