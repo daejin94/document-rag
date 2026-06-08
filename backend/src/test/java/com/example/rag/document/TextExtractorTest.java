@@ -36,6 +36,30 @@ class TextExtractorTest {
     }
 
     @Test
+    void rejectsPdfWhenExtractedTextIsTooShortForPageCount() throws IOException {
+        Path pdf = tempDir.resolve("short-multipage.pdf");
+        writePdf(pdf, "short", 5);
+
+        assertThatThrownBy(() -> textExtractor.extract(pdf, "short-multipage.pdf"))
+                .isInstanceOfSatisfying(ApiException.class, ex -> {
+                    assertThat(ex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(ex.getMessage()).contains("OCR 처리된");
+                });
+    }
+
+    @Test
+    void rejectsPdfWhenExtractedTextHasTooManyUnknownCharacters() throws IOException {
+        Path pdf = tempDir.resolve("broken.pdf");
+        writePdf(pdf, "valid text ".repeat(40) + "?".repeat(40));
+
+        assertThatThrownBy(() -> textExtractor.extract(pdf, "broken.pdf"))
+                .isInstanceOfSatisfying(ApiException.class, ex -> {
+                    assertThat(ex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(ex.getMessage()).contains("텍스트를 충분히 읽을 수 없는 PDF");
+                });
+    }
+
+    @Test
     void extractsMs949TextWhenUtf8DecodingFails() throws IOException {
         Path textFile = tempDir.resolve("sample.txt");
         Files.writeString(textFile, "한글 문서", Charset.forName("MS949"));
@@ -57,15 +81,21 @@ class TextExtractorTest {
     }
 
     private void writePdf(Path path, String text) throws IOException {
+        writePdf(path, text, 1);
+    }
+
+    private void writePdf(Path path, String text, int pageCount) throws IOException {
         try (PDDocument document = new PDDocument()) {
-            PDPage page = new PDPage();
-            document.addPage(page);
-            try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
-                contentStream.beginText();
-                contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
-                contentStream.newLineAtOffset(72, 720);
-                contentStream.showText(text);
-                contentStream.endText();
+            for (int i = 0; i < pageCount; i++) {
+                PDPage page = new PDPage();
+                document.addPage(page);
+                try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
+                    contentStream.beginText();
+                    contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
+                    contentStream.newLineAtOffset(72, 720);
+                    contentStream.showText(text);
+                    contentStream.endText();
+                }
             }
             document.save(path.toFile());
         }

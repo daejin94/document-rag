@@ -1,5 +1,23 @@
 # 작업 완료
 
+## 업로드 오류 메시지 표시 정리
+
+- 시작일: 2026-06-08
+- 완료일: 2026-06-08
+- 목적: 파일 등록 팝업의 긴 PDF 오류 메시지를 사용자가 읽기 쉬운 형태로 정리한다.
+- 현재 상태: 완료. PDF 품질 실패 메시지를 간결하게 줄이고, 업로드 팝업에서는 경고 아이콘과 제목/설명 형태의 안내 박스로 표시하도록 변경했다.
+- 다음 작업: 실제 이미지 기반 PDF 업로드 화면에서 안내 박스가 의도대로 보이는지 수동 확인한다.
+- 관련 파일: backend/src/main/java/com/example/rag/document/TextExtractor.java, frontend/src/components/UploadForm.tsx, frontend/src/styles.css
+
+## PDF 추출 텍스트 품질 검사 추가
+
+- 시작일: 2026-06-08
+- 완료일: 2026-06-08
+- 목적: 이미지 기반 또는 깨진 텍스트 PDF가 chunk/embedding으로 저장되지 않도록 업로드 단계에서 거절한다.
+- 현재 상태: 완료. PDFBox 추출 결과의 페이지 수 대비 의미 있는 문자 수, 깨진 문자 비율, 의미 문자 비율을 검사해 품질이 낮은 PDF를 BAD_REQUEST로 거절하도록 변경했다.
+- 다음 작업: 실제 이미지 기반 PDF 업로드 시 사용자 안내 메시지가 프론트에서 적절히 표시되는지 수동 확인한다.
+- 관련 파일: backend/src/main/java/com/example/rag/document/TextExtractor.java, backend/src/test/java/com/example/rag/document/TextExtractorTest.java
+
 ## 답변 대기 진행 표시와 타이핑 효과 적용
 
 - 시작일: 2026-06-08

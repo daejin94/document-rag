@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { RefreshCw, Upload } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Upload } from 'lucide-react';
 import { uploadDocument } from '../api';
 
 interface UploadFormProps {
@@ -9,12 +9,31 @@ interface UploadFormProps {
   onComplete?: () => void;
 }
 
+interface UploadErrorNotice {
+  title: string;
+  description: string;
+}
+
+function formatUploadError(message: string): UploadErrorNotice {
+  if (message.includes('OCR 처리된') || message.includes('텍스트를 충분히 읽을 수 없는 PDF')) {
+    return {
+      title: 'PDF 텍스트를 읽지 못했습니다.',
+      description: '스캔본 또는 이미지 기반 PDF일 수 있습니다. OCR 처리된 TXT/MD/PDF로 변환한 뒤 다시 업로드해주세요.',
+    };
+  }
+  return {
+    title: '업로드를 완료하지 못했습니다.',
+    description: message,
+  };
+}
+
 export function UploadForm({ token, projectId, onUploaded, onComplete }: UploadFormProps) {
   const [title, setTitle] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const errorNotice = error ? formatUploadError(error) : null;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -84,7 +103,15 @@ export function UploadForm({ token, projectId, onUploaded, onComplete }: UploadF
           <p>문서 업로드 중입니다.</p>
         </div>
       )}
-      {error && <p className="error-text">{error}</p>}
+      {errorNotice && (
+        <div className="upload-error" role="alert">
+          <AlertTriangle size={18} />
+          <span>
+            <strong>{errorNotice.title}</strong>
+            <small>{errorNotice.description}</small>
+          </span>
+        </div>
+      )}
       <button className="primary-button" disabled={busy || !projectId} type="submit">
         {busy ? <RefreshCw className="spin" size={17} /> : <Upload size={17} />}
         {busy ? '업로드 중' : '업로드'}
