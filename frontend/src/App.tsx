@@ -29,6 +29,8 @@ import type {
 } from './types';
 
 const tokenKey = 'document-rag-token';
+const typewriterDelayMs = 14;
+type AnswerStatus = 'idle' | 'waiting' | 'typing';
 
 export function App() {
   const [token, setToken] = useState(() => localStorage.getItem(tokenKey) || '');
@@ -65,6 +67,7 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
   const [error, setError] = useState('');
   const [memberError, setMemberError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [answerStatus, setAnswerStatus] = useState<AnswerStatus>('idle');
   const [isUploadModalOpen, setUploadModalOpen] = useState(false);
   const [isMemberModalOpen, setMemberModalOpen] = useState(false);
 
@@ -258,6 +261,40 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
     }
   }
 
+  function revealAssistantMessage(content: string, sources: ChatMessage['sources']) {
+    const characters = Array.from(content);
+    const createdAt = new Date().toISOString();
+    setMessages((current) => [
+      ...current,
+      {
+        role: 'ASSISTANT',
+        content: '',
+        sources,
+        createdAt,
+      },
+    ]);
+
+    if (characters.length === 0) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+      let index = 0;
+      const timer = window.setInterval(() => {
+        index += 1;
+        const nextContent = characters.slice(0, index).join('');
+        setMessages((current) => current.map((message) => (
+          message.createdAt === createdAt ? { ...message, content: nextContent } : message
+        )));
+
+        if (index >= characters.length) {
+          window.clearInterval(timer);
+          resolve();
+        }
+      }, typewriterDelayMs);
+    });
+  }
+
   async function ask(event: FormEvent) {
     event.preventDefault();
     if (!question.trim()) {
@@ -268,6 +305,7 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
       return;
     }
     setBusy(true);
+    setAnswerStatus('waiting');
     setError('');
     const userMessage: ChatMessage = {
       role: 'USER',
@@ -279,20 +317,14 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
     try {
       const response = await queryDocuments(token, userMessage.content, currentProjectId, selectedIds, currentSessionId ?? undefined);
       setCurrentSessionId(response.sessionId);
-      setMessages((current) => [
-        ...current,
-        {
-          role: 'ASSISTANT',
-          content: response.answer,
-          sources: response.sources,
-          createdAt: new Date().toISOString(),
-        },
-      ]);
+      setAnswerStatus('typing');
+      await revealAssistantMessage(response.answer, response.sources);
       setQuestion('');
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : '질문 요청에 실패했습니다.');
     } finally {
+      setAnswerStatus('idle');
       setBusy(false);
     }
   }
@@ -355,6 +387,7 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
         question={question}
         error={error}
         busy={busy}
+        answerStatus={answerStatus}
         onQuestionChange={setQuestion}
         onAsk={ask}
         onOpenUploadModal={() => setUploadModalOpen(true)}

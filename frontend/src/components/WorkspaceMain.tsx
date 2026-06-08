@@ -14,6 +14,7 @@ interface WorkspaceMainProps {
   question: string;
   error: string;
   busy: boolean;
+  answerStatus: 'idle' | 'waiting' | 'typing';
   onQuestionChange: (question: string) => void;
   onAsk: FormEventHandler<HTMLFormElement>;
   onOpenUploadModal: () => void;
@@ -30,6 +31,7 @@ export function WorkspaceMain({
   question,
   error,
   busy,
+  answerStatus,
   onQuestionChange,
   onAsk,
   onOpenUploadModal,
@@ -96,21 +98,44 @@ export function WorkspaceMain({
           </div>
           {messages.length > 0 ? (
             <div className="message-list">
-              {messages.map((message, index) => (
-                <div
-                  className={message.role === 'USER' ? 'chat-message user-message' : 'chat-message assistant-message'}
-                  key={`${message.createdAt}-${index}`}
-                >
-                  <strong>{message.role === 'USER' ? '나' : 'AI'}</strong>
-                  {message.role === 'ASSISTANT' ? (
-                    <div className="markdown-content">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+              {messages.map((message, index) => {
+                const isTypingAssistant = (
+                  answerStatus === 'typing'
+                  && message.role === 'ASSISTANT'
+                  && index === messages.length - 1
+                );
+                const messageClassName = message.role === 'USER'
+                  ? 'chat-message user-message'
+                  : `chat-message assistant-message${isTypingAssistant ? ' typing-message' : ''}`;
+
+                return (
+                  <div
+                    className={messageClassName}
+                    key={`${message.createdAt}-${index}`}
+                  >
+                    <strong>{message.role === 'USER' ? '나' : 'AI'}</strong>
+                    {message.role === 'ASSISTANT' ? (
+                      <div className="markdown-content">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                        {isTypingAssistant && <span className="typing-cursor" aria-hidden="true" />}
+                      </div>
+                    ) : (
+                      <p className="plain-message">{message.content}</p>
+                    )}
+                  </div>
+                );
+              })}
+              {answerStatus === 'waiting' && (
+                <div className="chat-message assistant-message pending-message" aria-live="polite">
+                  <strong>AI</strong>
+                  <div className="answer-progress">
+                    <span>문서 검색과 답변 생성을 진행 중입니다.</span>
+                    <div className="answer-progress-track">
+                      <i />
                     </div>
-                  ) : (
-                    <p className="plain-message">{message.content}</p>
-                  )}
+                  </div>
                 </div>
-              ))}
+              )}
             </div>
           ) : (
             <p className="empty-text">새 질문으로 대화를 시작하세요.</p>

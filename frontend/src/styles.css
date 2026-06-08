@@ -732,6 +732,53 @@ h1 {
   background: #ffffff;
 }
 
+.pending-message {
+  min-width: min(360px, 92%);
+}
+
+.answer-progress {
+  display: grid;
+  gap: 9px;
+}
+
+.answer-progress span {
+  color: #526173;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.answer-progress-track {
+  position: relative;
+  overflow: hidden;
+  height: 7px;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.answer-progress-track i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 46%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0f766e, #f59e0b);
+  animation: answer-progress 1.05s ease-in-out infinite;
+}
+
+.typing-message {
+  border-color: rgba(15, 118, 110, 0.2);
+}
+
+.typing-cursor {
+  display: inline-block;
+  width: 7px;
+  height: 1.2em;
+  margin-left: 2px;
+  border-radius: 999px;
+  background: #0f766e;
+  vertical-align: text-bottom;
+  animation: cursor-blink 0.8s steps(2, start) infinite;
+}
+
 .answer-text {
   margin: 18px 0 0;
   color: #1f2937;
@@ -859,6 +906,28 @@ h1 {
 
   100% {
     transform: translateX(250%);
+  }
+}
+
+@keyframes answer-progress {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  100% {
+    transform: translateX(220%);
+  }
+}
+
+@keyframes cursor-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+
+  46%,
+  100% {
+    opacity: 0;
   }
 }
 
