@@ -7,7 +7,9 @@ import java.util.Optional;
 
 public interface DocumentRepository extends JpaRepository<DocumentEntity, Long> {
 
-    List<DocumentEntity> findAllByUserIdOrderByCreatedAtDesc(Long userId);
+    List<DocumentEntity> findAllByProjectIdOrderByCreatedAtDesc(Long projectId);
 
-    Optional<DocumentEntity> findByIdAndUserId(Long id, Long userId);
+    Optional<DocumentEntity> findByIdAndProjectId(Long id, Long projectId);
+
+    boolean existsByIdAndProjectId(Long id, Long projectId);
 }

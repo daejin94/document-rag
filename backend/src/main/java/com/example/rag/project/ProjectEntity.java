@@ -1,6 +1,5 @@
-package com.example.rag.chat;
+package com.example.rag.project;
 
-import com.example.rag.project.ProjectEntity;
 import com.example.rag.user.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -17,23 +16,19 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 
 @Entity
-@Table(name = "chat_sessions")
-public class ChatSession {
+@Table(name = "projects")
+public class ProjectEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id", nullable = false)
-    private ProjectEntity project;
-
     @Column(nullable = false)
-    private String title;
+    private String name;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_user_id", nullable = false)
+    private User createdBy;
 
     @Column(nullable = false)
     private Instant createdAt;
@@ -41,13 +36,12 @@ public class ChatSession {
     @Column(nullable = false)
     private Instant updatedAt;
 
-    protected ChatSession() {
+    protected ProjectEntity() {
     }
 
-    public ChatSession(User user, ProjectEntity project, String title) {
-        this.user = user;
-        this.project = project;
-        this.title = title;
+    public ProjectEntity(String name, User createdBy) {
+        this.name = name;
+        this.createdBy = createdBy;
     }
 
     @PrePersist
@@ -66,27 +60,15 @@ public class ChatSession {
         return id;
     }
 
-    public User getUser() {
-        return user;
+    public String getName() {
+        return name;
     }
 
-    public ProjectEntity getProject() {
-        return project;
-    }
-
-    public String getTitle() {
-        return title;
+    public User getCreatedBy() {
+        return createdBy;
     }
 
     public Instant getCreatedAt() {
         return createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void markUpdated() {
-        updatedAt = Instant.now();
     }
 }

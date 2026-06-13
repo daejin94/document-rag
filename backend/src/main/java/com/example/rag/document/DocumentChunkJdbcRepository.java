@@ -28,9 +28,9 @@ public class DocumentChunkJdbcRepository {
                 .addValue("tokenCount", estimateTokenCount(content)));
     }
 
-    public List<SearchResult> search(Long userId, List<Long> documentIds, List<Float> queryEmbedding, int topK) {
+    public List<SearchResult> search(Long projectId, List<Long> documentIds, List<Float> queryEmbedding, int topK) {
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("userId", userId)
+                .addValue("projectId", projectId)
                 .addValue("embedding", toVectorLiteral(queryEmbedding))
                 .addValue("topK", topK);
 
@@ -61,7 +61,7 @@ public class DocumentChunkJdbcRepository {
                     WHERE nearby.document_id = dc.document_id
                       AND nearby.chunk_index BETWEEN dc.chunk_index - 1 AND dc.chunk_index + 1
                 ) context ON true
-                WHERE d.user_id = :userId
+                WHERE d.project_id = :projectId
                   AND d.status = 'COMPLETED'
                 """ + documentFilter + """
                 ORDER BY dc.embedding <=> CAST(:embedding AS vector)

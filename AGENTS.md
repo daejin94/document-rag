@@ -18,6 +18,14 @@ README.md는 사람을 위한 프로젝트 설명 문서이고, AGENTS.md는 AI 
 - 작업 후 가능한 범위에서 빌드 또는 테스트를 수행한다.
 - 테스트를 실행하지 못했다면 그 이유를 명확히 설명한다.
 
+## 작업 기록 규칙
+
+작업이 중간에 중단되어도 다음 작업자가 이어받을 수 있도록 루트 `worklog/` 디렉터리를 사용한다.
+
+- 작업 시작 전 `worklog/in-progress.md`를 확인한다.
+- 작업 기록 작성 및 이동 기준은 `worklog/README.md`를 따른다.
+- `worklog/planned.md`, `worklog/in-progress.md`, `worklog/done.md`에는 실제 작업 항목만 기록한다.
+
 ## 프로젝트 개요
 
 이 프로젝트는 문서 기반 RAG Q&A 시스템이다.
@@ -54,6 +62,7 @@ README.md는 사람을 위한 프로젝트 설명 문서이고, AGENTS.md는 AI 
 ```text
 backend/              Spring Boot API 서버
 frontend/             Vite React 클라이언트
+worklog/              작업 진행 상태 기록
 docker-compose.yml    통합 실행용 Docker Compose
 .env.example          환경변수 예시
 README.md             프로젝트 설명 문서

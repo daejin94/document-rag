@@ -7,7 +7,7 @@ import java.util.Optional;
 
 public interface ChatSessionRepository extends JpaRepository<ChatSession, Long> {
 
-    List<ChatSession> findAllByUserIdOrderByUpdatedAtDesc(Long userId);
+    List<ChatSession> findAllByUserIdAndProjectIdOrderByUpdatedAtDesc(Long userId, Long projectId);
 
-    Optional<ChatSession> findByIdAndUserId(Long id, Long userId);
+    Optional<ChatSession> findByIdAndUserIdAndProjectId(Long id, Long userId, Long projectId);
 }

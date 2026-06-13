@@ -11,6 +11,23 @@ export interface SignupResponse {
   name: string;
 }
 
+export type ProjectRole = 'ADMIN' | 'MEMBER';
+
+export interface Project {
+  projectId: number;
+  name: string;
+  role: ProjectRole;
+  createdAt: string;
+}
+
+export interface ProjectMember {
+  userId: number;
+  email: string;
+  name: string;
+  role: ProjectRole;
+  joinedAt: string;
+}
+
 export interface DocumentItem {
   documentId: number;
   title: string;

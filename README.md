@@ -9,6 +9,7 @@
 
 - 회원가입 / 로그인
 - JWT 기반 인증
+- 프로젝트 생성 및 멤버 추가
 - TXT / Markdown / PDF 문서 업로드
 - 문서 텍스트 추출 및 chunking
 - OpenAI Embedding API를 통한 embedding 생성
@@ -16,7 +17,8 @@
 - 검색된 chunk 기반 답변 생성
 - 답변 출처 반환
 - 채팅 세션 기반 후속 질문
-- 사용자별 문서 접근 제한
+- 프로젝트 멤버별 문서 접근 제한
+- 프로젝트 관리자 문서 삭제
 - React 기반 테스트 화면
 
 ## 기술 스택
@@ -173,10 +175,12 @@ Vite 개발 서버는 `/api` 요청을 `http://localhost:8080`으로 프록시�
 4. `http://localhost:5173` 접속
 5. 회원가입
 6. 로그인
-7. `.txt`, `.md`, `.markdown`, `.pdf` 문서 업로드
-8. 문서 상태가 `COMPLETED`인지 확인
-9. 질문 입력
-10. 답변과 출처 확인
+7. 프로젝트 생성
+8. 필요 시 프로젝트 멤버 추가
+9. `.txt`, `.md`, `.markdown`, `.pdf` 문서 업로드
+10. 문서 상태가 `COMPLETED`인지 확인
+11. 질문 입력
+12. 답변과 출처 확인
 
 ## API 예시
 
@@ -203,10 +207,35 @@ curl -X POST http://localhost:8080/api/auth/login \
   }'
 ```
 
+### 프로젝트 생성
+
+```bash
+curl -X POST http://localhost:8080/api/projects \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "RAG Demo"
+  }'
+```
+
+### 프로젝트 멤버 추가
+
+프로젝트 관리자만 멤버를 추가할 수 있습니다.
+
+```bash
+curl -X POST http://localhost:8080/api/projects/1/members \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "member@example.com",
+    "role": "MEMBER"
+  }'
+```
+
 ### 문서 업로드
 
 ```bash
-curl -X POST http://localhost:8080/api/documents \
+curl -X POST http://localhost:8080/api/projects/1/documents \
   -H "Authorization: Bearer <ACCESS_TOKEN>" \
   -F "title=Spring Security Guide" \
   -F "file=@spring-security-guide.md"
@@ -215,7 +244,7 @@ curl -X POST http://localhost:8080/api/documents \
 ### 질문
 
 ```bash
-curl -X POST http://localhost:8080/api/chat/query \
+curl -X POST http://localhost:8080/api/projects/1/chat/query \
   -H "Authorization: Bearer <ACCESS_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -227,7 +256,7 @@ curl -X POST http://localhost:8080/api/chat/query \
 응답의 `sessionId`를 다음 질문 요청에 포함하면 같은 대화 세션에서 이전 질문과 답변 맥락을 이어간다.
 
 ```bash
-curl -X POST http://localhost:8080/api/chat/query \
+curl -X POST http://localhost:8080/api/projects/1/chat/query \
   -H "Authorization: Bearer <ACCESS_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -235,6 +264,20 @@ curl -X POST http://localhost:8080/api/chat/query \
     "documentIds": [1],
     "sessionId": 1
   }'
+```
+
+### 프로젝트 대화 세션 조회
+
+```bash
+curl -X GET http://localhost:8080/api/projects/1/chat/sessions \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+### 프로젝트 대화 메시지 조회
+
+```bash
+curl -X GET http://localhost:8080/api/projects/1/chat/sessions/1/messages \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
 ```
 
 ## 지원 형식 및 현재 제한사항
