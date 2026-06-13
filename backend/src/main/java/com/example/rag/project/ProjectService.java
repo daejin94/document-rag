@@ -30,7 +30,8 @@ public class ProjectService {
     public ProjectResponse create(Long userId, CreateProjectRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "인증 사용자를 찾을 수 없습니다."));
-        ProjectEntity project = projectRepository.save(new ProjectEntity(request.name().trim(), user));
+        String description = normalizeDescription(request.description());
+        ProjectEntity project = projectRepository.save(new ProjectEntity(request.name().trim(), description, user));
         ProjectMember member = projectMemberRepository.save(new ProjectMember(project, user, ProjectRole.ADMIN));
         return toProjectResponse(member);
     }
@@ -97,7 +98,20 @@ public class ProjectService {
 
     private ProjectResponse toProjectResponse(ProjectMember member) {
         ProjectEntity project = member.getProject();
-        return new ProjectResponse(project.getId(), project.getName(), member.getRole(), project.getCreatedAt());
+        return new ProjectResponse(
+                project.getId(),
+                project.getName(),
+                project.getDescription(),
+                member.getRole(),
+                project.getCreatedAt()
+        );
+    }
+
+    private String normalizeDescription(String description) {
+        if (description == null || description.isBlank()) {
+            return null;
+        }
+        return description.trim();
     }
 
     private ProjectMemberResponse toMemberResponse(ProjectMember member) {

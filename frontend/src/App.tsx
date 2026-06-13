@@ -61,13 +61,16 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [detail, setDetail] = useState<DocumentDetail | null>(null);
   const [projectName, setProjectName] = useState('');
+  const [projectDescription, setProjectDescription] = useState('');
   const [memberEmail, setMemberEmail] = useState('');
   const [memberRole, setMemberRole] = useState<ProjectRole>('MEMBER');
   const [question, setQuestion] = useState('');
   const [error, setError] = useState('');
+  const [projectError, setProjectError] = useState('');
   const [memberError, setMemberError] = useState('');
   const [busy, setBusy] = useState(false);
   const [answerStatus, setAnswerStatus] = useState<AnswerStatus>('idle');
+  const [isProjectModalOpen, setProjectModalOpen] = useState(false);
   const [isUploadModalOpen, setUploadModalOpen] = useState(false);
   const [isMemberModalOpen, setMemberModalOpen] = useState(false);
 
@@ -147,18 +150,20 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
   async function submitProject(event: FormEvent) {
     event.preventDefault();
     if (!projectName.trim()) {
-      setError('프로젝트 이름을 입력해주세요.');
+      setProjectError('프로젝트 제목을 입력해주세요.');
       return;
     }
-    setError('');
+    setProjectError('');
     try {
-      const project = await createProject(token, projectName.trim());
+      const project = await createProject(token, projectName.trim(), projectDescription.trim());
       setProjectName('');
+      setProjectDescription('');
+      setProjectModalOpen(false);
       setCurrentProjectId(project.projectId);
       setProjects(await fetchProjects(token));
       await loadProjectData(project.projectId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '프로젝트 생성에 실패했습니다.');
+      setProjectError(err instanceof Error ? err.message : '프로젝트 생성에 실패했습니다.');
     }
   }
 
@@ -354,6 +359,18 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
     setMemberModalOpen(false);
   }
 
+  function openProjectModal() {
+    setProjectError('');
+    setProjectModalOpen(true);
+  }
+
+  function closeProjectModal() {
+    setProjectError('');
+    setProjectName('');
+    setProjectDescription('');
+    setProjectModalOpen(false);
+  }
+
   return (
     <main className="workspace">
       <WorkspaceSidebar
@@ -362,11 +379,9 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
         sessions={sessions}
         currentProjectId={currentProjectId}
         currentSessionId={currentSessionId}
-        projectName={projectName}
         selectedIds={selectedIds}
         isProjectAdmin={isProjectAdmin}
-        onProjectNameChange={setProjectName}
-        onSubmitProject={submitProject}
+        onOpenProjectModal={openProjectModal}
         onSelectProject={selectProject}
         onRefresh={refresh}
         onToggleDocument={toggle}
@@ -393,6 +408,34 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
         onOpenUploadModal={() => setUploadModalOpen(true)}
         onOpenMemberModal={openMemberModal}
       />
+
+      {isProjectModalOpen && (
+        <Modal title="프로젝트 추가" onClose={closeProjectModal}>
+          <form className="modal-form" onSubmit={submitProject}>
+            <label>
+              프로젝트 제목
+              <input
+                value={projectName}
+                onChange={(event) => setProjectName(event.target.value)}
+                placeholder="예: 사내 보안 문서"
+              />
+            </label>
+            <label>
+              간단한 설명
+              <textarea
+                value={projectDescription}
+                onChange={(event) => setProjectDescription(event.target.value)}
+                placeholder="프로젝트 목적이나 포함할 문서 범위를 적어주세요."
+                rows={4}
+              />
+            </label>
+            {projectError && <p className="error-text">{projectError}</p>}
+            <button className="primary-button" type="submit">
+              프로젝트 생성
+            </button>
+          </form>
+        </Modal>
+      )}
 
       {isUploadModalOpen && (
         <Modal title="파일 등록" onClose={() => setUploadModalOpen(false)}>

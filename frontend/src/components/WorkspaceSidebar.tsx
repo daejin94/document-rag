@@ -1,4 +1,3 @@
-import type { FormEventHandler } from 'react';
 import {
   FileText,
   Folder,
@@ -18,11 +17,9 @@ interface WorkspaceSidebarProps {
   sessions: ChatSession[];
   currentProjectId: number | null;
   currentSessionId: number | null;
-  projectName: string;
   selectedIds: number[];
   isProjectAdmin: boolean;
-  onProjectNameChange: (name: string) => void;
-  onSubmitProject: FormEventHandler<HTMLFormElement>;
+  onOpenProjectModal: () => void;
   onSelectProject: (projectId: number) => void;
   onRefresh: () => void;
   onToggleDocument: (documentId: number) => void;
@@ -39,11 +36,9 @@ export function WorkspaceSidebar({
   sessions,
   currentProjectId,
   currentSessionId,
-  projectName,
   selectedIds,
   isProjectAdmin,
-  onProjectNameChange,
-  onSubmitProject,
+  onOpenProjectModal,
   onSelectProject,
   onRefresh,
   onToggleDocument,
@@ -71,17 +66,10 @@ export function WorkspaceSidebar({
           <div className="section-title">
             <Folder size={17} />
             프로젝트
-          </div>
-          <form className="project-form" onSubmit={onSubmitProject}>
-            <input
-              value={projectName}
-              onChange={(event) => onProjectNameChange(event.target.value)}
-              placeholder="프로젝트 이름"
-            />
-            <button className="icon-button" title="프로젝트 생성" type="submit">
+            <button className="icon-button" onClick={onOpenProjectModal} title="프로젝트 생성" type="button">
               <Plus size={15} />
             </button>
-          </form>
+          </div>
           <div className="project-list">
             {projects.map((project) => (
               <button

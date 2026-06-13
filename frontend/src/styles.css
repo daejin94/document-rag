@@ -420,7 +420,6 @@ textarea:focus {
   display: none;
 }
 
-.project-form,
 .member-form {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

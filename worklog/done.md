@@ -1,5 +1,14 @@
 # 작업 완료
 
+## 프로젝트 추가 팝업 전환
+
+- 시작일: 2026-06-13
+- 완료일: 2026-06-13
+- 목적: 프로젝트 목록은 유지하고, + 버튼 클릭 시 팝업에서 프로젝트 제목과 간단한 설명을 입력해 추가하도록 변경한다.
+- 현재 상태: 완료. 사이드바의 프로젝트 직접 입력 폼을 생성 버튼으로 바꾸고, 프로젝트 추가 모달에서 제목과 설명을 입력해 생성하도록 변경했다. 설명 저장을 위해 프로젝트 API, Entity, 응답 DTO, Flyway 마이그레이션을 함께 반영했다.
+- 다음 작업: 실제 DB 마이그레이션 적용 후 브라우저에서 프로젝트 추가 모달과 목록 갱신 흐름을 수동 확인한다.
+- 관련 파일: backend/src/main/java/com/example/rag/project/, backend/src/main/resources/db/migration/V4__add_project_description.sql, frontend/src/App.tsx, frontend/src/api.ts, frontend/src/components/WorkspaceSidebar.tsx, frontend/src/types.ts, frontend/src/styles.css
+
 ## 워크스페이스 패널 정렬 재조정
 
 - 시작일: 2026-06-10

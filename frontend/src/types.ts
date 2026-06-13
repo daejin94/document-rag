@@ -16,6 +16,7 @@ export type ProjectRole = 'ADMIN' | 'MEMBER';
 export interface Project {
   projectId: number;
   name: string;
+  description: string | null;
   role: ProjectRole;
   createdAt: string;
 }
