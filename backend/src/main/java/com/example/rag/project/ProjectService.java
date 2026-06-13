@@ -14,15 +14,18 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final ProjectDeletionRepository projectDeletionRepository;
     private final UserRepository userRepository;
 
     public ProjectService(
             ProjectRepository projectRepository,
             ProjectMemberRepository projectMemberRepository,
+            ProjectDeletionRepository projectDeletionRepository,
             UserRepository userRepository
     ) {
         this.projectRepository = projectRepository;
         this.projectMemberRepository = projectMemberRepository;
+        this.projectDeletionRepository = projectDeletionRepository;
         this.userRepository = userRepository;
     }
 
@@ -49,6 +52,17 @@ public class ProjectService {
         return projectMemberRepository.findAllWithUserByProjectId(projectId).stream()
                 .map(this::toMemberResponse)
                 .toList();
+    }
+
+    @Transactional
+    public DeleteProjectResponse delete(Long userId, Long projectId) {
+        requireAdmin(projectId, userId);
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "프로젝트를 찾을 수 없습니다."));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "인증 사용자를 찾을 수 없습니다."));
+        projectDeletionRepository.save(new ProjectDeletion(project, user));
+        return new DeleteProjectResponse(true);
     }
 
     @Transactional
@@ -83,16 +97,24 @@ public class ProjectService {
     }
 
     public void requireMember(Long projectId, Long userId) {
+        requireActiveProject(projectId);
         if (projectMemberRepository.findByProjectIdAndUserId(projectId, userId).isEmpty()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "프로젝트 접근 권한이 없습니다.");
         }
     }
 
     public void requireAdmin(Long projectId, Long userId) {
+        requireActiveProject(projectId);
         ProjectMember member = projectMemberRepository.findByProjectIdAndUserId(projectId, userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "프로젝트 접근 권한이 없습니다."));
         if (member.getRole() != ProjectRole.ADMIN) {
             throw new ApiException(HttpStatus.FORBIDDEN, "프로젝트 관리자만 수행할 수 있습니다.");
+        }
+    }
+
+    private void requireActiveProject(Long projectId) {
+        if (projectDeletionRepository.existsByProjectId(projectId)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "프로젝트를 찾을 수 없습니다.");
         }
     }
 

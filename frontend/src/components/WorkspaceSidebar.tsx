@@ -3,6 +3,7 @@ import {
   Folder,
   LogOut,
   MessageSquare,
+  Minus,
   Plus,
   RefreshCw,
   Search,
@@ -20,6 +21,7 @@ interface WorkspaceSidebarProps {
   selectedIds: number[];
   isProjectAdmin: boolean;
   onOpenProjectModal: () => void;
+  onOpenDeleteProjectModal: (project: Project) => void;
   onSelectProject: (projectId: number) => void;
   onRefresh: () => void;
   onToggleDocument: (documentId: number) => void;
@@ -39,6 +41,7 @@ export function WorkspaceSidebar({
   selectedIds,
   isProjectAdmin,
   onOpenProjectModal,
+  onOpenDeleteProjectModal,
   onSelectProject,
   onRefresh,
   onToggleDocument,
@@ -72,15 +75,29 @@ export function WorkspaceSidebar({
           </div>
           <div className="project-list">
             {projects.map((project) => (
-              <button
-                className={project.projectId === currentProjectId ? 'project-button active' : 'project-button'}
+              <article
+                className={project.projectId === currentProjectId ? 'project-row active' : 'project-row'}
                 key={project.projectId}
-                onClick={() => onSelectProject(project.projectId)}
-                type="button"
               >
-                <strong>{project.name}</strong>
-                <small>{project.role}</small>
-              </button>
+                <button
+                  className="project-button"
+                  onClick={() => onSelectProject(project.projectId)}
+                  type="button"
+                >
+                  <strong>{project.name}</strong>
+                  <small>{project.role}</small>
+                </button>
+                {project.role === 'ADMIN' && (
+                  <button
+                    className="icon-button danger project-delete-button"
+                    onClick={() => onOpenDeleteProjectModal(project)}
+                    title="프로젝트 삭제"
+                    type="button"
+                  >
+                    <Minus size={15} />
+                  </button>
+                )}
+              </article>
             ))}
             {projects.length === 0 && <p className="empty-text">프로젝트 없음</p>}
           </div>

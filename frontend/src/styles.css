@@ -436,7 +436,23 @@ textarea:focus {
   gap: 8px;
 }
 
-.project-button,
+.project-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+  padding: 10px 10px 10px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 18px;
+  background: var(--canvas);
+}
+
+.project-row.active {
+  border-color: var(--action-blue-focus);
+  background: var(--pearl);
+}
+
 .member-row {
   gap: 4px;
   min-width: 0;
@@ -449,6 +465,29 @@ textarea:focus {
 
 .project-button {
   display: grid;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.project-delete-button {
+  width: 34px;
+  height: 34px;
+  background: transparent;
+  color: var(--ink-soft);
+  flex: 0 0 auto;
+  font-weight: 400;
+}
+
+.project-delete-button:hover,
+.project-delete-button:focus-visible {
+  background: transparent;
+  color: #d70015;
+  font-weight: 700;
 }
 
 .member-row {
@@ -465,11 +504,6 @@ textarea:focus {
 
 .member-row .icon-button {
   flex: 0 0 auto;
-}
-
-.project-button.active {
-  border-color: var(--action-blue-focus);
-  background: var(--pearl);
 }
 
 .project-button strong,
@@ -1109,6 +1143,34 @@ h1 {
 .modal-panel .upload-form {
   display: grid;
   gap: 14px;
+}
+
+.delete-confirm {
+  display: grid;
+  gap: 14px;
+}
+
+.delete-confirm p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 1.47;
+}
+
+.delete-confirm small {
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.47;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.danger-button {
+  background: #d70015;
 }
 
 .modal-form.member-form {
