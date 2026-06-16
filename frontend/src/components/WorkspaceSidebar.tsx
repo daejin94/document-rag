@@ -1,9 +1,9 @@
-import type { FormEventHandler } from 'react';
 import {
   FileText,
   Folder,
   LogOut,
   MessageSquare,
+  Minus,
   Plus,
   RefreshCw,
   Search,
@@ -18,11 +18,10 @@ interface WorkspaceSidebarProps {
   sessions: ChatSession[];
   currentProjectId: number | null;
   currentSessionId: number | null;
-  projectName: string;
   selectedIds: number[];
   isProjectAdmin: boolean;
-  onProjectNameChange: (name: string) => void;
-  onSubmitProject: FormEventHandler<HTMLFormElement>;
+  onOpenProjectModal: () => void;
+  onOpenDeleteProjectModal: (project: Project) => void;
   onSelectProject: (projectId: number) => void;
   onRefresh: () => void;
   onToggleDocument: (documentId: number) => void;
@@ -39,11 +38,10 @@ export function WorkspaceSidebar({
   sessions,
   currentProjectId,
   currentSessionId,
-  projectName,
   selectedIds,
   isProjectAdmin,
-  onProjectNameChange,
-  onSubmitProject,
+  onOpenProjectModal,
+  onOpenDeleteProjectModal,
   onSelectProject,
   onRefresh,
   onToggleDocument,
@@ -71,28 +69,35 @@ export function WorkspaceSidebar({
           <div className="section-title">
             <Folder size={17} />
             프로젝트
-          </div>
-          <form className="project-form" onSubmit={onSubmitProject}>
-            <input
-              value={projectName}
-              onChange={(event) => onProjectNameChange(event.target.value)}
-              placeholder="프로젝트 이름"
-            />
-            <button className="icon-button" title="프로젝트 생성" type="submit">
+            <button className="icon-button" onClick={onOpenProjectModal} title="프로젝트 생성" type="button">
               <Plus size={15} />
             </button>
-          </form>
+          </div>
           <div className="project-list">
             {projects.map((project) => (
-              <button
-                className={project.projectId === currentProjectId ? 'project-button active' : 'project-button'}
+              <article
+                className={project.projectId === currentProjectId ? 'project-row active' : 'project-row'}
                 key={project.projectId}
-                onClick={() => onSelectProject(project.projectId)}
-                type="button"
               >
-                <strong>{project.name}</strong>
-                <small>{project.role}</small>
-              </button>
+                <button
+                  className="project-button"
+                  onClick={() => onSelectProject(project.projectId)}
+                  type="button"
+                >
+                  <strong>{project.name}</strong>
+                  <small>{project.role}</small>
+                </button>
+                {project.role === 'ADMIN' && (
+                  <button
+                    className="icon-button danger project-delete-button"
+                    onClick={() => onOpenDeleteProjectModal(project)}
+                    title="프로젝트 삭제"
+                    type="button"
+                  >
+                    <Minus size={15} />
+                  </button>
+                )}
+              </article>
             ))}
             {projects.length === 0 && <p className="empty-text">프로젝트 없음</p>}
           </div>

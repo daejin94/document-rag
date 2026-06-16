@@ -54,11 +54,15 @@ export function fetchProjects(token: string) {
   return request<Project[]>('/api/projects', {}, token);
 }
 
-export function createProject(token: string, name: string) {
+export function createProject(token: string, name: string, description: string) {
   return request<Project>('/api/projects', {
     method: 'POST',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, description }),
   }, token);
+}
+
+export function deleteProject(token: string, projectId: number) {
+  return request<{ deleted: boolean }>(`/api/projects/${projectId}`, { method: 'DELETE' }, token);
 }
 
 export function fetchProjectMembers(token: string, projectId: number) {

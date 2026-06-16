@@ -33,6 +33,11 @@ public class ProjectController {
         return projectService.list(authUser.id());
     }
 
+    @DeleteMapping("/{projectId}")
+    public DeleteProjectResponse delete(@AuthenticationPrincipal AuthUser authUser, @PathVariable Long projectId) {
+        return projectService.delete(authUser.id(), projectId);
+    }
+
     @GetMapping("/{projectId}/members")
     public List<ProjectMemberResponse> members(@AuthenticationPrincipal AuthUser authUser, @PathVariable Long projectId) {
         return projectService.members(authUser.id(), projectId);

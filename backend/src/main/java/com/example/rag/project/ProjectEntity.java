@@ -26,6 +26,9 @@ public class ProjectEntity {
     @Column(nullable = false)
     private String name;
 
+    @Column(length = 500)
+    private String description;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_user_id", nullable = false)
     private User createdBy;
@@ -39,8 +42,9 @@ public class ProjectEntity {
     protected ProjectEntity() {
     }
 
-    public ProjectEntity(String name, User createdBy) {
+    public ProjectEntity(String name, String description, User createdBy) {
         this.name = name;
+        this.description = description;
         this.createdBy = createdBy;
     }
 
@@ -62,6 +66,10 @@ public class ProjectEntity {
 
     public String getName() {
         return name;
+    }
+
+    public String getDescription() {
+        return description;
     }
 
     public User getCreatedBy() {

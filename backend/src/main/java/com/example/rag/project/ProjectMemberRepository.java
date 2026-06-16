@@ -20,6 +20,11 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
             from ProjectMember member
             join fetch member.project project
             where member.user.id = :userId
+              and not exists (
+                  select deletion.id
+                  from ProjectDeletion deletion
+                  where deletion.project.id = project.id
+              )
             order by project.name asc
             """)
     List<ProjectMember> findAllWithProjectByUserId(@Param("userId") Long userId);
