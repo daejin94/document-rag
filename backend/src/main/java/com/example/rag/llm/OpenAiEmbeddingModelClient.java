@@ -24,7 +24,7 @@ public class OpenAiEmbeddingModelClient implements EmbeddingModelClient {
     }
 
     @Override
-    public List<Float> embed(String text) {
+    public EmbedResult embed(String text) {
         ensureApiKey();
         Map<String, Object> response = restClient.post()
                 .uri("/v1/embeddings")
@@ -39,7 +39,18 @@ public class OpenAiEmbeddingModelClient implements EmbeddingModelClient {
             throw new ApiException(HttpStatus.BAD_GATEWAY, "Embedding API 응답에 벡터가 없습니다.");
         }
         List<Number> embedding = (List<Number>) data.getFirst().get("embedding");
-        return embedding.stream().map(Number::floatValue).toList();
+        Map<String, Object> usage = (Map<String, Object>) response.getOrDefault("usage", Map.of());
+        return new EmbedResult(
+                embedding.stream().map(Number::floatValue).toList(),
+                intValue(usage.get("total_tokens"))
+        );
+    }
+
+    private int intValue(Object value) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        return 0;
     }
 
     @Override

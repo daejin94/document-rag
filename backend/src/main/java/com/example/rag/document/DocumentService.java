@@ -1,10 +1,13 @@
 package com.example.rag.document;
 
 import com.example.rag.common.ApiException;
+import com.example.rag.llm.EmbedResult;
 import com.example.rag.llm.EmbeddingModelClient;
 import com.example.rag.project.ProjectEntity;
 import com.example.rag.project.ProjectRepository;
 import com.example.rag.project.ProjectService;
+import com.example.rag.usage.TokenUsageRecorder;
+import com.example.rag.usage.TokenUsageType;
 import com.example.rag.user.User;
 import com.example.rag.user.UserRepository;
 import org.springframework.http.HttpStatus;
@@ -27,6 +30,7 @@ public class DocumentService {
     private final TextExtractor textExtractor;
     private final DocumentChunker documentChunker;
     private final EmbeddingModelClient embeddingModelClient;
+    private final TokenUsageRecorder tokenUsageRecorder;
 
     public DocumentService(
             UserRepository userRepository,
@@ -38,7 +42,8 @@ public class DocumentService {
             FileStorageService fileStorageService,
             TextExtractor textExtractor,
             DocumentChunker documentChunker,
-            EmbeddingModelClient embeddingModelClient
+            EmbeddingModelClient embeddingModelClient,
+            TokenUsageRecorder tokenUsageRecorder
     ) {
         this.userRepository = userRepository;
         this.projectRepository = projectRepository;
@@ -50,6 +55,7 @@ public class DocumentService {
         this.textExtractor = textExtractor;
         this.documentChunker = documentChunker;
         this.embeddingModelClient = embeddingModelClient;
+        this.tokenUsageRecorder = tokenUsageRecorder;
     }
 
     public DocumentUploadResponse upload(Long userId, Long projectId, MultipartFile file, String title) {
@@ -77,12 +83,19 @@ public class DocumentService {
             documentRepository.save(document);
             String text = textExtractor.extract(storedPath, originalFileName);
             List<String> chunks = documentChunker.split(text);
+            int embeddingTokens = 0;
             for (int i = 0; i < chunks.size(); i++) {
-                List<Float> embedding = embeddingModelClient.embed(chunks.get(i));
-                documentChunkJdbcRepository.save(document.getId(), i, chunks.get(i), embedding);
+                EmbedResult embedding = embeddingModelClient.embed(chunks.get(i));
+                embeddingTokens += embedding.totalTokens();
+                documentChunkJdbcRepository.save(document.getId(), i, chunks.get(i), embedding.embedding());
             }
             document.markCompleted();
             documentRepository.save(document);
+            tokenUsageRecorder.record(
+                    userId, projectId, null,
+                    TokenUsageType.EMBEDDING_UPLOAD, embeddingModelClient.modelName(),
+                    embeddingTokens, 0
+            );
         } catch (RuntimeException ex) {
             document.markFailed(ex.getMessage());
             documentRepository.save(document);

@@ -10,10 +10,13 @@ import com.example.rag.document.SearchResult;
 import com.example.rag.llm.ChatModelClient;
 import com.example.rag.llm.ChatModelRequest;
 import com.example.rag.llm.ChatModelResult;
+import com.example.rag.llm.EmbedResult;
 import com.example.rag.llm.EmbeddingModelClient;
 import com.example.rag.project.ProjectEntity;
 import com.example.rag.project.ProjectRepository;
 import com.example.rag.project.ProjectService;
+import com.example.rag.usage.TokenUsageRecorder;
+import com.example.rag.usage.TokenUsageType;
 import com.example.rag.user.User;
 import com.example.rag.user.UserRepository;
 import org.springframework.http.HttpStatus;
@@ -42,6 +45,7 @@ public class ChatService {
     private final ChatModelClient chatModelClient;
     private final PromptBuilder promptBuilder;
     private final RagProperties ragProperties;
+    private final TokenUsageRecorder tokenUsageRecorder;
 
     public ChatService(
             UserRepository userRepository,
@@ -56,7 +60,8 @@ public class ChatService {
             EmbeddingModelClient embeddingModelClient,
             ChatModelClient chatModelClient,
             PromptBuilder promptBuilder,
-            RagProperties ragProperties
+            RagProperties ragProperties,
+            TokenUsageRecorder tokenUsageRecorder
     ) {
         this.userRepository = userRepository;
         this.documentRepository = documentRepository;
@@ -71,6 +76,7 @@ public class ChatService {
         this.chatModelClient = chatModelClient;
         this.promptBuilder = promptBuilder;
         this.ragProperties = ragProperties;
+        this.tokenUsageRecorder = tokenUsageRecorder;
     }
 
     @Transactional
@@ -85,11 +91,16 @@ public class ChatService {
         chatMessageRepository.save(new ChatMessage(session, MessageRole.USER, request.question()));
         session.markUpdated();
 
-        List<Float> questionEmbedding = embeddingModelClient.embed(promptBuilder.searchText(request.question(), history));
+        EmbedResult questionEmbedding = embeddingModelClient.embed(promptBuilder.searchText(request.question(), history));
+        tokenUsageRecorder.record(
+                userId, projectId, session.getId(),
+                TokenUsageType.EMBEDDING_QUERY, embeddingModelClient.modelName(),
+                questionEmbedding.totalTokens(), 0
+        );
         List<SearchResult> searchResults = documentChunkJdbcRepository.search(
                 projectId,
                 request.documentIds(),
-                questionEmbedding,
+                questionEmbedding.embedding(),
                 ragProperties.topK()
         );
 
@@ -105,6 +116,11 @@ public class ChatService {
         ));
         ChatMessage assistantMessage = chatMessageRepository.save(new ChatMessage(session, MessageRole.ASSISTANT, modelResult.answer()));
         session.markUpdated();
+        tokenUsageRecorder.record(
+                userId, projectId, session.getId(),
+                TokenUsageType.CHAT, chatModelClient.modelName(),
+                modelResult.promptTokens(), modelResult.completionTokens()
+        );
 
         saveAnswerSources(assistantMessage, contextResults);
 

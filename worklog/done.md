@@ -1,5 +1,14 @@
 # 작업 완료
 
+## 사용자별 토큰 사용량 저장
+
+- 시작일: 2026-06-22
+- 완료일: 2026-06-22
+- 목적: 어떤 사용자가 OpenAI 토큰을 얼마나 썼는지 호출 단위로 영구 저장한다(집계는 추후). 채팅 답변뿐 아니라 임베딩까지 포함하되 종류를 구분해 기록한다.
+- 현재 상태: 완료. `token_usages` 테이블(V6)과 `usage` 패키지(`TokenUsage` 엔티티/리포지토리/`TokenUsageRecorder`)를 추가했다. `usage_type`으로 `CHAT`/`EMBEDDING_QUERY`/`EMBEDDING_UPLOAD`를 구분한다. 임베딩 토큰을 얻기 위해 `EmbeddingModelClient.embed`가 `EmbedResult(embedding, totalTokens)`를 반환하도록 바꾸고 OpenAI `usage.total_tokens`를 읽는다. `ChatService.query`는 질문 임베딩과 chat 응답을, `DocumentService.upload`는 업로드 chunk 임베딩 합계를 기록한다. JDK21 설치 후 `./gradlew build`로 컴파일·테스트 통과 확인.
+- 다음 작업: DB 마이그레이션 적용 후 실제 쿼리/업로드로 token_usages 적재 수동 확인. 이후 사용자별 합계 조회 API/집계는 별도 작업으로 진행.
+- 관련 파일: backend/src/main/java/com/example/rag/usage/, backend/src/main/java/com/example/rag/llm/EmbedResult.java, backend/src/main/java/com/example/rag/llm/EmbeddingModelClient.java, backend/src/main/java/com/example/rag/llm/OpenAiEmbeddingModelClient.java, backend/src/main/java/com/example/rag/chat/ChatService.java, backend/src/main/java/com/example/rag/document/DocumentService.java, backend/src/main/resources/db/migration/V6__add_token_usages.sql
+
 ## 프로젝트 삭제 기능 추가
 
 - 시작일: 2026-06-13
