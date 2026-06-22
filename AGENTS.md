@@ -189,6 +189,8 @@ cd backend
 ./gradlew bootRun
 ```
 
+> 주의: `.env`는 반드시 LF 줄바꿈으로 작성한다. `.env`는 gitignore 대상이라 `.gitattributes`의 LF 정규화가 적용되지 않으므로, Windows 편집기로 만들면 CRLF가 섞여 `source .env`(또는 `run-backend.sh`)가 줄 끝 `\r` 때문에 깨지거나 `OPENAI_API_KEY` 값 끝에 `\r`이 붙어 OpenAI 호출이 실패한다. WSL 터미널에서 `cp .env.example .env`로 생성하면 LF인 example을 그대로 복사하므로 안전하다. CRLF로 만들었다면 `sed -i 's/\r$//' .env`로 변환한다.
+
 프론트엔드를 실행한다.
 
 ```bash
