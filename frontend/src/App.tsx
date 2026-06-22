@@ -443,7 +443,6 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
         onOpenUploadModal={() => setUploadModalOpen(true)}
         onStartNewSession={startNewSession}
         onOpenSession={openSession}
-        onLogout={onLogout}
       />
 
       <WorkspaceMain

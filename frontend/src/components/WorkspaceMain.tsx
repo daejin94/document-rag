@@ -3,6 +3,7 @@ import {
   Bot,
   CircleUserRound,
   FileText,
+  FolderKanban,
   LogOut,
   MoreVertical,
   Plus,
@@ -14,6 +15,8 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Modal } from './Modal';
+import { Dropdown } from './Dropdown';
 import type { ChatMessage, ChatSession, DocumentDetail, DocumentItem, Project, Source } from '../types';
 
 interface WorkspaceMainProps {
@@ -68,6 +71,7 @@ export function WorkspaceMain({
   userEmail,
 }: WorkspaceMainProps) {
   const [isProfileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [isProjectsModalOpen, setProjectsModalOpen] = useState(false);
   const profileEmail = userEmail || '로그인 사용자';
   const profileName = userEmail ? userEmail.split('@')[0] : '사용자';
 
@@ -82,29 +86,21 @@ export function WorkspaceMain({
         </div>
         <div className="topbar-actions">
           <div className="project-controls">
-            <select
-              aria-label="프로젝트 선택"
+            <Dropdown
+              ariaLabel="프로젝트 선택"
               disabled={projects.length === 0}
-              onChange={(event) => {
-                if (event.target.value) {
-                  onSelectProject(Number(event.target.value));
+              onChange={(value) => {
+                if (value) {
+                  onSelectProject(Number(value));
                 }
               }}
-              value={currentProjectId ?? ''}
-            >
-              {projects.length === 0 ? (
-                <option value="">프로젝트 없음</option>
-              ) : (
-                <>
-                  <option value="">프로젝트 선택</option>
-                  {projects.map((project) => (
-                    <option key={project.projectId} value={project.projectId}>
-                      {project.name}
-                    </option>
-                  ))}
-                </>
-              )}
-            </select>
+              options={projects.map((project) => ({
+                value: String(project.projectId),
+                label: project.name,
+              }))}
+              placeholder={projects.length === 0 ? '프로젝트 없음' : '프로젝트 선택'}
+              value={currentProjectId ? String(currentProjectId) : ''}
+            />
             <button className="icon-button nav-icon-button" onClick={onOpenProjectModal} title="프로젝트 생성" type="button">
               <Plus size={16} />
             </button>
@@ -123,28 +119,31 @@ export function WorkspaceMain({
             className="primary-button action-button"
             disabled={!currentProjectId}
             onClick={onStartNewSession}
+            title="새 대화"
             type="button"
           >
             <Plus size={16} />
-            새 대화
+            <span className="action-label">새 대화</span>
           </button>
           <button
             className="ghost-button action-button"
             disabled={!currentProjectId}
             onClick={onOpenUploadModal}
+            title="파일 등록"
             type="button"
           >
             <Upload size={16} />
-            파일 등록
+            <span className="action-label">파일 등록</span>
           </button>
           <button
             className="ghost-button action-button"
             disabled={!currentProjectId}
             onClick={onOpenMemberModal}
+            title="멤버 관리"
             type="button"
           >
             <Users size={16} />
-            멤버 관리
+            <span className="action-label">멤버 관리</span>
           </button>
           <div className="profile-menu-wrap">
             <button
@@ -164,21 +163,66 @@ export function WorkspaceMain({
                   </div>
                   <strong>{profileName}님</strong>
                   <span>{profileEmail}</span>
-                  <small>{currentProject ? `현재 프로젝트 권한: ${currentProject.role}` : '선택된 프로젝트 없음'}</small>
                 </div>
-                <button
-                  className="profile-logout"
-                  onClick={onLogout}
-                  type="button"
-                >
-                  <LogOut size={16} />
-                  로그아웃
-                </button>
+                <div className="profile-actions">
+                  <button
+                    className="profile-action"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      setProjectsModalOpen(true);
+                    }}
+                    type="button"
+                  >
+                    <FolderKanban size={16} />
+                    프로젝트 관리
+                  </button>
+                  <button
+                    className="profile-action profile-logout"
+                    onClick={onLogout}
+                    type="button"
+                  >
+                    <LogOut size={16} />
+                    로그아웃
+                  </button>
+                </div>
               </div>
             )}
           </div>
         </div>
       </header>
+
+      {isProjectsModalOpen && (
+        <Modal title="프로젝트 관리" onClose={() => setProjectsModalOpen(false)}>
+          <div className="project-overview">
+            <p className="project-overview-desc">내가 속한 프로젝트와 각 프로젝트에서의 권한입니다.</p>
+            <div className="project-overview-list">
+              {projects.length === 0 ? (
+                <p className="empty-text">속한 프로젝트가 없습니다</p>
+              ) : (
+                projects.map((project) => (
+                  <button
+                    className={`project-overview-row${project.projectId === currentProjectId ? ' active' : ''}`}
+                    key={project.projectId}
+                    onClick={() => {
+                      onSelectProject(project.projectId);
+                      setProjectsModalOpen(false);
+                    }}
+                    type="button"
+                  >
+                    <span className="project-overview-info">
+                      <strong>{project.name}</strong>
+                      {project.description && <small>{project.description}</small>}
+                    </span>
+                    <span className={`role-badge role-${project.role.toLowerCase()}`}>
+                      {project.role === 'ADMIN' ? '관리자' : '멤버'}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {error && <p className="error-banner">{error}</p>}
 
@@ -240,7 +284,15 @@ export function WorkspaceMain({
             ) : (
               <div className="chat-empty-state">
                 <Bot size={28} />
-                <p>선택한 소스를 바탕으로 질문을 시작하세요.</p>
+                <p>
+                  {projects.length === 0 ? (
+                    <strong>먼저 프로젝트를 생성해 주세요!</strong>
+                  ) : !currentProjectId ? (
+                    '프로젝트를 선택해 주세요.'
+                  ) : (
+                    '선택한 소스를 바탕으로 질문을 시작하세요.'
+                  )}
+                </p>
               </div>
             )}
           </div>
@@ -262,7 +314,7 @@ export function WorkspaceMain({
         <aside className="studio-panel similarity-panel">
           <div className="studio-header">
             <h2>검색 유사도 결과</h2>
-            <button className="icon-button nav-icon-button" title="결과 옵션" type="button">
+            <button className="icon-button nav-icon-button" disabled title="결과 옵션" type="button">
               <MoreVertical size={17} />
             </button>
           </div>

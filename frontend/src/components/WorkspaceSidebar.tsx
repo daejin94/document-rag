@@ -1,6 +1,5 @@
 import {
   FileText,
-  LogOut,
   MessageSquare,
   Plus,
   RefreshCw,
@@ -25,7 +24,6 @@ interface WorkspaceSidebarProps {
   onOpenUploadModal: () => void;
   onStartNewSession: () => void;
   onOpenSession: (sessionId: number) => void;
-  onLogout: () => void;
 }
 
 export function WorkspaceSidebar({
@@ -43,7 +41,6 @@ export function WorkspaceSidebar({
   onOpenUploadModal,
   onStartNewSession,
   onOpenSession,
-  onLogout,
 }: WorkspaceSidebarProps) {
   const hasDocuments = documents.length > 0;
   const isAllSelected = hasDocuments && selectedIds.length === documents.length;
@@ -55,10 +52,6 @@ export function WorkspaceSidebar({
           <Shield size={22} />
           <span>Document RAG</span>
         </div>
-        <button className="ghost-button logout compact-logout" onClick={onLogout} type="button">
-          <LogOut size={17} />
-          로그아웃
-        </button>
       </div>
 
       <div className="sidebar-scroll">
@@ -66,19 +59,22 @@ export function WorkspaceSidebar({
           <div className="section-title">
             <FileText size={17} />
             출처
-            <button className="icon-button" onClick={onRefresh} title="새로고침" type="button">
-              <RefreshCw size={16} />
-            </button>
+            <div className="section-title-actions">
+              <button className="icon-button" onClick={onRefresh} title="새로고침" type="button">
+                <RefreshCw size={16} />
+              </button>
+              <button
+                className="icon-button source-add-icon"
+                disabled={!currentProjectId}
+                onClick={onOpenUploadModal}
+                title="소스 추가"
+                type="button"
+              >
+                <Plus size={17} />
+                <span className="source-add-label">소스 추가</span>
+              </button>
+            </div>
           </div>
-          <button
-            className="source-add-button"
-            disabled={!currentProjectId}
-            onClick={onOpenUploadModal}
-            type="button"
-          >
-            <Plus size={17} />
-            소스 추가
-          </button>
           <div className="source-search" aria-hidden="true">
             <Search size={16} />
             <span>업로드한 소스에서 검색</span>
@@ -132,7 +128,7 @@ export function WorkspaceSidebar({
             </button>
           </div>
           <div className="session-list">
-            {sessions.slice(0, 6).map((session) => (
+            {sessions.map((session) => (
               <button
                 className={session.sessionId === currentSessionId ? 'session-button active' : 'session-button'}
                 key={session.sessionId}
@@ -146,11 +142,6 @@ export function WorkspaceSidebar({
           </div>
         </section>
       </div>
-
-      <button className="ghost-button logout bottom-logout" onClick={onLogout} type="button">
-        <LogOut size={17} />
-        로그아웃
-      </button>
     </aside>
   );
 }

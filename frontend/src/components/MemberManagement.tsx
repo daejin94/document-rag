@@ -1,5 +1,6 @@
 import type { FormEventHandler } from 'react';
 import { Trash2, UserPlus, Users } from 'lucide-react';
+import { Dropdown } from './Dropdown';
 import type { ProjectMember, ProjectRole } from '../types';
 
 interface MemberManagementProps {
@@ -71,10 +72,15 @@ export function MemberManagement({
             </label>
             <label>
               역할
-              <select value={memberRole} onChange={(event) => onMemberRoleChange(event.target.value as ProjectRole)}>
-                <option value="MEMBER">MEMBER</option>
-                <option value="ADMIN">ADMIN</option>
-              </select>
+              <Dropdown
+                ariaLabel="역할"
+                onChange={(value) => onMemberRoleChange(value as ProjectRole)}
+                options={[
+                  { value: 'MEMBER', label: 'MEMBER' },
+                  { value: 'ADMIN', label: 'ADMIN' },
+                ]}
+                value={memberRole}
+              />
             </label>
             <button className="primary-button" disabled={!currentProjectId} type="submit">
               <UserPlus size={17} />
