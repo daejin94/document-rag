@@ -46,6 +46,15 @@ docker compose up -d postgres
 docker compose ps
 ```
 
+`run-backend.sh`는 DB URL이 `localhost` 또는 `127.0.0.1`인 경우 Postgres 컨테이너를 자동으로 실행하고 준비될 때까지 기다린다.
+
+로컬에서 `5432` 포트를 사용할 수 없다면 `.env`에 아래 값을 추가하고 DB URL 포트도 함께 맞춘다.
+
+```env
+POSTGRES_HOST_PORT=15432
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:15432/rag_db
+```
+
 루트 `.env`를 로드한 뒤 백엔드를 실행한다.
 
 ```bash

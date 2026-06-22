@@ -79,6 +79,10 @@ SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/rag_db
 SPRING_DATASOURCE_USERNAME=rag_user
 SPRING_DATASOURCE_PASSWORD=rag_password
 
+# 5432 포트가 로컬에서 사용할 수 없는 경우
+# POSTGRES_HOST_PORT=15432
+# SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:15432/rag_db
+
 RAG_TOP_K=5
 RAG_SIMILARITY_THRESHOLD=0.20
 ```
@@ -121,6 +125,15 @@ docker compose up --build
 ```bash
 docker compose up -d postgres
 docker compose ps
+```
+
+`run-backend.sh`는 DB URL이 `localhost` 또는 `127.0.0.1`인 경우 Postgres 컨테이너를 자동으로 실행하고 준비될 때까지 기다립니다.
+
+로컬에서 `5432` 포트를 사용할 수 없다면 `.env`에 아래 값을 추가하고 DB URL 포트도 함께 맞춥니다.
+
+```env
+POSTGRES_HOST_PORT=15432
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:15432/rag_db
 ```
 
 ### 2. 백엔드 실행
