@@ -33,6 +33,21 @@ const tokenKey = 'document-rag-token';
 const typewriterDelayMs = 14;
 type AnswerStatus = 'idle' | 'waiting' | 'typing';
 
+function getEmailFromToken(token: string) {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) {
+      return '';
+    }
+    const normalizedPayload = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const paddedPayload = normalizedPayload.padEnd(Math.ceil(normalizedPayload.length / 4) * 4, '=');
+    const decoded = JSON.parse(window.atob(paddedPayload)) as { email?: string };
+    return decoded.email ?? '';
+  } catch {
+    return '';
+  }
+}
+
 export function App() {
   const [token, setToken] = useState(() => localStorage.getItem(tokenKey) || '');
 
@@ -81,6 +96,8 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
     () => projects.find((project) => project.projectId === currentProjectId) ?? null,
     [projects, currentProjectId],
   );
+
+  const userEmail = useMemo(() => getEmailFromToken(token), [token]);
 
   const isProjectAdmin = currentProject?.role === 'ADMIN';
 
@@ -408,20 +425,22 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
   return (
     <main className="workspace">
       <WorkspaceSidebar
-        projects={projects}
         documents={documents}
         sessions={sessions}
         currentProjectId={currentProjectId}
         currentSessionId={currentSessionId}
         selectedIds={selectedIds}
         isProjectAdmin={isProjectAdmin}
-        onOpenProjectModal={openProjectModal}
-        onOpenDeleteProjectModal={openDeleteProjectModal}
-        onSelectProject={selectProject}
         onRefresh={refresh}
         onToggleDocument={toggle}
         onInspectDocument={inspect}
         onRemoveDocument={remove}
+        onToggleAllDocuments={() => {
+          setSelectedIds((current) => (
+            current.length === documents.length ? [] : documents.map((document) => document.documentId)
+          ));
+        }}
+        onOpenUploadModal={() => setUploadModalOpen(true)}
         onStartNewSession={startNewSession}
         onOpenSession={openSession}
         onLogout={onLogout}
@@ -430,6 +449,9 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
       <WorkspaceMain
         currentProject={currentProject}
         currentProjectId={currentProjectId}
+        projects={projects}
+        documents={documents}
+        sessions={sessions}
         selectedDocuments={selectedDocuments}
         messages={messages}
         latestSources={latestSources}
@@ -442,6 +464,12 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
         onAsk={ask}
         onOpenUploadModal={() => setUploadModalOpen(true)}
         onOpenMemberModal={openMemberModal}
+        onOpenProjectModal={openProjectModal}
+        onOpenDeleteProjectModal={openDeleteProjectModal}
+        onSelectProject={selectProject}
+        onStartNewSession={startNewSession}
+        onLogout={onLogout}
+        userEmail={userEmail}
       />
 
       {isProjectModalOpen && (

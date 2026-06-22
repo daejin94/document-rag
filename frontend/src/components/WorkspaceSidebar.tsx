@@ -1,56 +1,53 @@
 import {
   FileText,
-  Folder,
   LogOut,
   MessageSquare,
-  Minus,
   Plus,
   RefreshCw,
   Search,
   Shield,
   Trash2,
 } from 'lucide-react';
-import type { ChatSession, DocumentItem, Project } from '../types';
+import type { ChatSession, DocumentItem } from '../types';
 
 interface WorkspaceSidebarProps {
-  projects: Project[];
   documents: DocumentItem[];
   sessions: ChatSession[];
   currentProjectId: number | null;
   currentSessionId: number | null;
   selectedIds: number[];
   isProjectAdmin: boolean;
-  onOpenProjectModal: () => void;
-  onOpenDeleteProjectModal: (project: Project) => void;
-  onSelectProject: (projectId: number) => void;
   onRefresh: () => void;
   onToggleDocument: (documentId: number) => void;
   onInspectDocument: (documentId: number) => void;
   onRemoveDocument: (documentId: number) => void;
+  onToggleAllDocuments: () => void;
+  onOpenUploadModal: () => void;
   onStartNewSession: () => void;
   onOpenSession: (sessionId: number) => void;
   onLogout: () => void;
 }
 
 export function WorkspaceSidebar({
-  projects,
   documents,
   sessions,
   currentProjectId,
   currentSessionId,
   selectedIds,
   isProjectAdmin,
-  onOpenProjectModal,
-  onOpenDeleteProjectModal,
-  onSelectProject,
   onRefresh,
   onToggleDocument,
   onInspectDocument,
   onRemoveDocument,
+  onToggleAllDocuments,
+  onOpenUploadModal,
   onStartNewSession,
   onOpenSession,
   onLogout,
 }: WorkspaceSidebarProps) {
+  const hasDocuments = documents.length > 0;
+  const isAllSelected = hasDocuments && selectedIds.length === documents.length;
+
   return (
     <aside className="sidebar">
       <div className="sidebar-head">
@@ -65,52 +62,35 @@ export function WorkspaceSidebar({
       </div>
 
       <div className="sidebar-scroll">
-        <section className="side-section">
-          <div className="section-title">
-            <Folder size={17} />
-            프로젝트
-            <button className="icon-button" onClick={onOpenProjectModal} title="프로젝트 생성" type="button">
-              <Plus size={15} />
-            </button>
-          </div>
-          <div className="project-list">
-            {projects.map((project) => (
-              <article
-                className={project.projectId === currentProjectId ? 'project-row active' : 'project-row'}
-                key={project.projectId}
-              >
-                <button
-                  className="project-button"
-                  onClick={() => onSelectProject(project.projectId)}
-                  type="button"
-                >
-                  <strong>{project.name}</strong>
-                  <small>{project.role}</small>
-                </button>
-                {project.role === 'ADMIN' && (
-                  <button
-                    className="icon-button danger project-delete-button"
-                    onClick={() => onOpenDeleteProjectModal(project)}
-                    title="프로젝트 삭제"
-                    type="button"
-                  >
-                    <Minus size={15} />
-                  </button>
-                )}
-              </article>
-            ))}
-            {projects.length === 0 && <p className="empty-text">프로젝트 없음</p>}
-          </div>
-        </section>
-
-        <section className="side-section">
+        <section className="side-section source-section">
           <div className="section-title">
             <FileText size={17} />
-            문서
+            출처
             <button className="icon-button" onClick={onRefresh} title="새로고침" type="button">
               <RefreshCw size={16} />
             </button>
           </div>
+          <button
+            className="source-add-button"
+            disabled={!currentProjectId}
+            onClick={onOpenUploadModal}
+            type="button"
+          >
+            <Plus size={17} />
+            소스 추가
+          </button>
+          <div className="source-search" aria-hidden="true">
+            <Search size={16} />
+            <span>업로드한 소스에서 검색</span>
+          </div>
+
+          <div className="source-toolbar">
+            <button disabled={!hasDocuments} onClick={onToggleAllDocuments} type="button">
+              {isAllSelected ? '전체 해제' : '모두 선택'}
+            </button>
+            <span>{selectedIds.length} / {documents.length}</span>
+          </div>
+
           <div className="document-list">
             {documents.map((document) => (
               <article className="document-row" key={document.documentId}>
@@ -141,11 +121,11 @@ export function WorkspaceSidebar({
           </div>
         </section>
 
-        <section className="side-section compact">
+        <section className="side-section project-section">
           <div className="section-title session-title">
             <span>
               <MessageSquare size={17} />
-              세션
+              대화 기록
             </span>
             <button className="icon-button" onClick={onStartNewSession} title="새 대화" type="button">
               <Plus size={15} />
