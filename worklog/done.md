@@ -9,6 +9,60 @@
 - 다음 작업: DB 마이그레이션 적용 후 실제 쿼리/업로드로 token_usages 적재 수동 확인. 이후 사용자별 합계 조회 API/집계는 별도 작업으로 진행.
 - 관련 파일: backend/src/main/java/com/example/rag/usage/, backend/src/main/java/com/example/rag/llm/EmbedResult.java, backend/src/main/java/com/example/rag/llm/EmbeddingModelClient.java, backend/src/main/java/com/example/rag/llm/OpenAiEmbeddingModelClient.java, backend/src/main/java/com/example/rag/chat/ChatService.java, backend/src/main/java/com/example/rag/document/DocumentService.java, backend/src/main/resources/db/migration/V6__add_token_usages.sql
 
+## 프로필 메뉴 단일 카드 정리
+
+- 시작일: 2026-06-17
+- 완료일: 2026-06-17
+- 목적: 프로필 드롭다운에서 내 정보 2단계를 제거하고 Google 계정 팝업처럼 정보를 바로 표시한다.
+- 현재 상태: 완료. JWT의 email claim을 읽어 프로필 드롭다운에 이메일과 표시명을 바로 보여주고, 현재 프로젝트 권한과 로그아웃 버튼을 같은 카드 안에 배치했다. 계정 더 보기류의 추가 메뉴는 넣지 않았다.
+- 다음 작업: 실제 로그인 상태에서 프로필 메뉴 디자인과 로그아웃 동작을 수동 확인한다.
+- 관련 파일: frontend/src/App.tsx, frontend/src/components/WorkspaceMain.tsx, frontend/src/styles.css
+
+## 프로필 드롭다운 전환
+
+- 시작일: 2026-06-17
+- 완료일: 2026-06-17
+- 목적: 상단 설정 아이콘을 로그인 상태에 맞는 로그인/프로필 아이콘과 드롭다운 메뉴로 변경한다.
+- 현재 상태: 완료. 로그인 전 인증 화면에는 로그인 아이콘 버튼을 추가하고, 로그인 후 워크스페이스 상단 설정 버튼은 프로필 아이콘으로 교체했다. 프로필 아이콘 클릭 시 내 정보 보기와 로그아웃 메뉴가 표시된다.
+- 다음 작업: 실제 로그인 상태에서 프로필 드롭다운 열림, 내 정보 보기 토글, 로그아웃 동작을 수동 확인한다.
+- 관련 파일: frontend/src/components/AuthScreen.tsx, frontend/src/components/WorkspaceMain.tsx, frontend/src/App.tsx, frontend/src/styles.css
+
+## 대화 기록 다크 톤 정리
+
+- 시작일: 2026-06-17
+- 완료일: 2026-06-17
+- 목적: 왼쪽 대화 기록 버튼 색상을 다크 레이아웃 톤앤매너에 맞게 조정한다.
+- 현재 상태: 완료. 밝은 pill 형태로 보이던 세션 버튼을 다크 리스트 아이템 스타일로 덮어써 주변 패널과 톤을 맞췄다.
+- 다음 작업: 실제 로그인 화면에서 대화 기록 hover/active 상태를 수동 확인한다.
+- 관련 파일: frontend/src/styles.css
+
+## NotebookLM 스타일 패널 배치 재조정
+
+- 시작일: 2026-06-17
+- 완료일: 2026-06-17
+- 목적: 왼쪽 프로젝트 영역에는 대화 기록을 배치하고, 오른쪽 스튜디오 영역에는 기존 검색 유사도 출처 결과를 표시한다.
+- 현재 상태: 완료. 프로젝트 목록이 있던 왼쪽 하단 영역을 대화 기록으로 바꾸고, 프로젝트 선택/생성/삭제는 상단 컨트롤로 이동했다. 오른쪽 스튜디오 패널은 검색 유사도 결과 전용 패널로 정리해 chunk 유사도와 미리보기를 표시하도록 변경했다.
+- 다음 작업: 백엔드와 프론트엔드 실행 후 실제 프로젝트 데이터로 대화 기록 열기와 검색 유사도 결과 표시를 수동 확인한다.
+- 관련 파일: frontend/src/App.tsx, frontend/src/components/WorkspaceMain.tsx, frontend/src/components/WorkspaceSidebar.tsx, frontend/src/styles.css
+
+## 백엔드 로컬 실행 DB 연결 오류 수정
+
+- 시작일: 2026-06-17
+- 완료일: 2026-06-17
+- 목적: `run-backend.sh` 실행 시 PostgreSQL 연결 거부로 백엔드가 뜨지 않는 문제를 해결한다.
+- 현재 상태: 완료. Docker Postgres host port를 설정 가능하게 하고 로컬 바인딩을 `127.0.0.1`로 제한했다. `run-backend.sh`는 로컬 DB URL 사용 시 Postgres 컨테이너를 자동 실행하고 준비 상태를 확인한 뒤 백엔드를 실행하도록 보완했다. 로컬 `.env`는 5432 포트 바인딩 문제를 피하기 위해 `15432`를 사용하도록 조정했다.
+- 다음 작업: 필요 시 프론트엔드와 함께 로그인/문서 업로드/질문 흐름을 수동 확인한다.
+- 관련 파일: run-backend.sh, docker-compose.yml, .env.example, README.md, docs/development.md
+
+## NotebookLM 스타일 프로젝트 화면 구조 변경
+
+- 시작일: 2026-06-16
+- 완료일: 2026-06-16
+- 목적: 프로젝트 선택 후 화면을 첨부한 NotebookLM 화면처럼 출처, 채팅, 스튜디오 중심의 3패널 구조로 변경한다.
+- 현재 상태: 완료. 왼쪽 패널을 출처/소스 관리 중심으로 재구성하고, 중앙 채팅 패널과 오른쪽 스튜디오 패널을 추가했다. 기존 프로젝트 전환, 문서 선택, 파일 등록, 멤버 관리, 세션 열기 흐름은 유지했다.
+- 다음 작업: 백엔드 실행 및 로그인 상태에서 실제 프로젝트 데이터로 문서 선택, 세션 열기, 파일 등록 버튼, 멤버 관리 버튼을 수동 확인한다.
+- 관련 파일: frontend/src/App.tsx, frontend/src/components/WorkspaceMain.tsx, frontend/src/components/WorkspaceSidebar.tsx, frontend/src/styles.css
+
 ## 프로젝트 삭제 기능 추가
 
 - 시작일: 2026-06-13

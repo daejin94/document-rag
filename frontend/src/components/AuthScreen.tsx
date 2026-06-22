@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Bot, Check, RefreshCw, Shield, UserPlus } from 'lucide-react';
+import { Bot, Check, LogIn, RefreshCw, Shield, UserPlus } from 'lucide-react';
 import { login, signup } from '../api';
 
 type AuthMode = 'login' | 'signup';
@@ -35,6 +35,14 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
 
   return (
     <main className="auth-shell">
+      <button
+        className="auth-entry-button"
+        onClick={() => setMode('login')}
+        title="로그인"
+        type="button"
+      >
+        <LogIn size={18} />
+      </button>
       <section className="auth-visual" aria-hidden="true">
         <div className="document-stack">
           <div className="paper paper-one">
