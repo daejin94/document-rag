@@ -1,10 +1,10 @@
 import {
+  BookOpenText,
   FileText,
   MessageSquare,
   Plus,
   RefreshCw,
   Search,
-  Shield,
   Trash2,
 } from 'lucide-react';
 import type { ChatSession, DocumentItem } from '../types';
@@ -49,8 +49,8 @@ export function WorkspaceSidebar({
     <aside className="sidebar">
       <div className="sidebar-head">
         <div className="brand-row">
-          <Shield size={22} />
-          <span>Document RAG</span>
+          <BookOpenText size={22} />
+          <span>DocQ</span>
         </div>
       </div>
 

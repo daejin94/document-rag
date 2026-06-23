@@ -51,95 +51,10 @@ button {
 .auth-shell {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(320px, 1.2fr) minmax(320px, 440px);
-  min-height: 100vh;
-  background: var(--parchment);
-}
-
-.auth-visual {
-  position: relative;
-  display: grid;
   place-items: center;
-  overflow: hidden;
-  min-height: 360px;
-  background: var(--canvas);
-}
-
-.document-stack {
-  position: relative;
-  width: min(72vw, 520px);
-  aspect-ratio: 1.2;
-}
-
-.paper {
-  position: absolute;
-  width: 64%;
-  height: 76%;
-  border: 1px solid var(--hairline);
-  border-radius: 18px;
-  background: var(--pearl);
-  box-shadow: rgba(0, 0, 0, 0.22) 3px 5px 30px 0;
-  padding: 12%;
-}
-
-.paper span {
-  display: block;
-  height: 12px;
-  margin-bottom: 18px;
-  border-radius: 999px;
-  background: var(--divider-soft);
-}
-
-.paper span:nth-child(1) {
-  width: 78%;
-  background: var(--action-blue);
-}
-
-.paper span:nth-child(2) {
-  width: 92%;
-}
-
-.paper span:nth-child(3) {
-  width: 62%;
-}
-
-.paper-one {
-  left: 18%;
-  top: 8%;
-  transform: rotate(-5deg);
-}
-
-.paper-two {
-  right: 11%;
-  bottom: 4%;
-  transform: rotate(7deg);
-}
-
-.vector-node {
-  position: absolute;
-  width: 58px;
-  height: 58px;
-  border: 10px solid var(--canvas);
-  border-radius: 50%;
-  box-shadow: rgba(0, 0, 0, 0.22) 3px 5px 30px 0;
-}
-
-.node-a {
-  left: 6%;
-  bottom: 17%;
-  background: var(--tile-dark);
-}
-
-.node-b {
-  right: 8%;
-  top: 12%;
-  background: var(--action-blue);
-}
-
-.node-c {
-  right: 21%;
-  bottom: 12%;
-  background: var(--tile-dark-2);
+  min-height: 100vh;
+  padding: 24px;
+  background: var(--parchment);
 }
 
 .auth-panel {
@@ -147,9 +62,13 @@ button {
   flex-direction: column;
   justify-content: center;
   gap: 22px;
-  padding: clamp(28px, 7vw, 56px);
+  width: 100%;
+  max-width: 420px;
+  padding: clamp(28px, 6vw, 44px);
+  border: 1px solid var(--hairline);
+  border-radius: 22px;
   background: rgba(245, 245, 247, 0.86);
-  border-left: 1px solid var(--hairline);
+  box-shadow: rgba(0, 0, 0, 0.18) 0 18px 50px -20px;
   backdrop-filter: saturate(180%) blur(20px);
 }
 
@@ -1240,7 +1159,6 @@ h1 {
 }
 
 @media (max-width: 980px) {
-  .auth-shell,
   .workspace,
   .conversation-layout,
   .chat-composer {
@@ -1249,11 +1167,6 @@ h1 {
 
   .workspace {
     grid-template-rows: minmax(220px, 38vh) minmax(0, 1fr);
-  }
-
-  .auth-panel {
-    border-left: 0;
-    border-top: 1px solid var(--hairline);
   }
 
   .sidebar {
@@ -1302,10 +1215,6 @@ h1 {
 }
 
 @media (max-width: 620px) {
-  .auth-visual {
-    min-height: 260px;
-  }
-
   .sidebar,
   .main-panel {
     padding: 0;
@@ -1746,7 +1655,7 @@ h1 {
 
 .profile-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 8px;
 }
 
@@ -1765,6 +1674,7 @@ h1 {
   font-size: 13px;
   font-weight: 600;
   text-align: center;
+  white-space: nowrap;
 }
 
 .profile-dropdown .profile-action:hover {
@@ -2971,30 +2881,9 @@ h1 {
   font-size: 14px;
 }
 
-/* 로그인 우측 입력 패널: 반투명 다크 */
+/* 로그인 입력 카드: 반투명 다크 */
 .auth-panel {
   background: rgba(20, 24, 29, 0.82);
-}
-
-/* 로그인 좌측 일러스트: 다크 위에서도 보이도록 보정 */
-.auth-shell .auth-visual {
-  background: #171b21;
-}
-
-.auth-shell .paper span {
-  background: #2f3742;
-}
-
-.auth-shell .vector-node {
-  border-color: #171b21;
-}
-
-.auth-shell .node-a {
-  background: #3a434d;
-}
-
-.auth-shell .node-c {
-  background: #2b333c;
 }
 
 /* 관리자: 어두운 배경에서 파랑 강조색 대비 보정 */

@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Bot, Check, RefreshCw, Shield, UserPlus } from 'lucide-react';
+import { BookOpenText, Bot, Check, RefreshCw, UserPlus } from 'lucide-react';
 import { login, signup } from '../api';
 
 type AuthMode = 'login' | 'signup';
@@ -36,27 +36,10 @@ export function AuthScreen({ onAuthenticated, sessionExpired = false }: AuthScre
 
   return (
     <main className="auth-shell">
-      <section className="auth-visual" aria-hidden="true">
-        <div className="document-stack">
-          <div className="paper paper-one">
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="paper paper-two">
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="vector-node node-a" />
-          <div className="vector-node node-b" />
-          <div className="vector-node node-c" />
-        </div>
-      </section>
       <section className="auth-panel">
         <div className="brand-row">
-          <Shield size={24} />
-          <span>Document RAG</span>
+          <BookOpenText size={24} />
+          <span>DocQ</span>
         </div>
         <div className="segmented">
           <button className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')} type="button">
