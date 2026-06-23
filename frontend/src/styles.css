@@ -56,24 +56,6 @@ button {
   background: var(--parchment);
 }
 
-.auth-entry-button {
-  position: fixed;
-  top: 18px;
-  left: 18px;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.86);
-  color: var(--ink);
-  box-shadow: rgba(0, 0, 0, 0.12) 0 8px 24px;
-  backdrop-filter: saturate(180%) blur(20px);
-}
-
 .auth-visual {
   position: relative;
   display: grid;
@@ -368,6 +350,17 @@ textarea:focus {
   border: 1px solid var(--hairline);
   border-radius: 18px;
   background: var(--canvas);
+}
+
+.notice-text {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  background: var(--canvas);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .upload-error {
@@ -2521,6 +2514,8 @@ h1 {
     flex: 1 1 0;
     min-height: 0;
     overflow-y: auto;
+    /* 그리드 행이 빈 공간을 나눠 가지며 늘어나지 않도록 위에서부터 쌓는다 */
+    align-content: start;
   }
 }
 
@@ -2658,6 +2653,10 @@ h1 {
   padding: 0 10px;
   background: var(--canvas);
   color: var(--ink);
+  cursor: pointer;
+  /* 숫자 세그먼트가 클릭 시 드래그 선택(하이라이트)되지 않도록 */
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .usage-summary {
@@ -2919,4 +2918,103 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* ===== 로그인 · 관리자 다크 테마 (프로젝트 화면과 통일) ===== */
+/* 대부분의 규칙이 변수를 참조하므로, 스코프 안에서 팔레트만 다크로 재정의하면 전체가 전환된다 */
+.auth-shell,
+.admin-shell {
+  --parchment: #14181d;
+  --canvas: #1b2026;
+  --pearl: #20252b;
+  --ink: #f3f6fb;
+  --ink-muted: #dce5ef;
+  --ink-soft: #95a2af;
+  --hairline: #303741;
+  --divider-soft: #262d35;
+  color: var(--ink);
+}
+
+/* 입력 필드: 하드코딩된 밝은 테두리를 다크로, 배경은 워크스페이스 입력과 동일하게 */
+.auth-shell input,
+.auth-shell select,
+.auth-shell textarea,
+.admin-shell input,
+.admin-shell select,
+.admin-shell textarea {
+  border-color: var(--hairline);
+  background: #15191f;
+  color: var(--ink);
+  /* 네이티브 날짜 선택기(달력 아이콘·팝업)를 다크로 렌더링해 어두운 배경에서도 보이게 한다 */
+  color-scheme: dark;
+}
+
+/* 주요 버튼: 워크스페이스와 동일한 밝은 알약형 */
+.auth-shell .primary-button,
+.admin-shell .primary-button {
+  background: #f8fbff;
+  color: #15191f;
+  font-weight: 700;
+}
+
+/* 보조 버튼: 워크스페이스와 동일한 다크 외곽선 */
+.auth-shell .ghost-button,
+.admin-shell .ghost-button {
+  border-color: #3c4652;
+  background: transparent;
+  color: #e8f0f8;
+}
+
+/* 관리자 헤더 로그아웃: 가로 여백 확보 + 폰트 크기 조정 */
+.admin-header .ghost-button {
+  padding: 0 18px;
+  font-size: 14px;
+}
+
+/* 로그인 우측 입력 패널: 반투명 다크 */
+.auth-panel {
+  background: rgba(20, 24, 29, 0.82);
+}
+
+/* 로그인 좌측 일러스트: 다크 위에서도 보이도록 보정 */
+.auth-shell .auth-visual {
+  background: #171b21;
+}
+
+.auth-shell .paper span {
+  background: #2f3742;
+}
+
+.auth-shell .vector-node {
+  border-color: #171b21;
+}
+
+.auth-shell .node-a {
+  background: #3a434d;
+}
+
+.auth-shell .node-c {
+  background: #2b333c;
+}
+
+/* 관리자: 어두운 배경에서 파랑 강조색 대비 보정 */
+.admin-shell .admin-badge {
+  background: rgba(41, 151, 255, 0.16);
+  color: var(--action-blue-on-dark);
+}
+
+.admin-shell .admin-tab.is-active {
+  color: var(--action-blue-on-dark);
+}
+
+.admin-shell .admin-tab.is-active::after {
+  background: var(--action-blue-on-dark);
+}
+
+.admin-shell .admin-panel .admin-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-shell .admin-table tbody tr.is-selected {
+  background: rgba(41, 151, 255, 0.12);
 }
