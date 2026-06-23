@@ -28,13 +28,33 @@ JWT만으로는 부족하다 — 일반 `USER` 토큰으로 `/api/admin/**`을 �
 | Method | Path | 설명 |
 |---|---|---|
 | GET | `/api/admin/usage/daily` | 전체 시스템 일자별 토큰 사용량 |
-| GET | `/api/admin/users` | 전체 사용자 목록(+누적 토큰) |
+| GET | `/api/admin/users` | 승인된 사용자 목록(+누적 토큰) |
+| GET | `/api/admin/users/pending` | 승인 대기 가입 신청 목록 |
+| POST | `/api/admin/users/{userId}/approve` | 가입 승인 |
+| POST | `/api/admin/users/{userId}/reject` | 가입 거절 |
 | GET | `/api/admin/users/{userId}/usage/daily` | 사용자별 일자별 사용량 |
 | DELETE | `/api/admin/users/{userId}` | 사용자 soft delete |
 | GET | `/api/admin/projects` | 전체 프로젝트 목록(+멤버, 누적 토큰) |
 | GET | `/api/admin/projects/{projectId}/usage/daily` | 프로젝트별 일자별 사용량 |
 
 일자별 사용량 엔드포인트는 선택 쿼리 파라미터 `from`, `to`(ISO date, 예: `2026-06-01`)로 기간을 제한할 수 있다. 요청/응답 본문은 [api.md](../api.md)를 참고한다.
+
+## 가입 승인
+
+회원가입은 즉시 활성화되지 않고 **승인 대기(PENDING)** 상태로 생성된다(`app_users.status`, `UserStatus`).
+
+| status | 의미 | 로그인 |
+|---|---|---|
+| `PENDING` | 가입 신청 후 승인 대기 | 불가(`403`) |
+| `APPROVED` | 관리자 승인 완료 | 가능 |
+| `REJECTED` | 관리자 거절 | 불가(`403`) |
+
+- 로그인 시 비밀번호 검증 후 상태를 확인한다(`AuthService.login`). `PENDING`/`REJECTED`는 `403`.
+- 승인(`approve`)은 `PENDING → APPROVED`, 거절(`reject`)은 `PENDING → REJECTED`. 대상이 PENDING이 아니면 `400`.
+- 사용자 목록(`GET /api/admin/users`)은 `APPROVED`만, 승인 대기 목록(`GET /api/admin/users/pending`)은 `PENDING`만 반환한다.
+- **관리자(`SUPER_ADMIN`) 계정은 자기 자신을 승인할 수 없으므로**, `SuperAdminInitializer`가 승격 시 함께 `APPROVED`로 처리한다.
+- 기존 사용자는 `V8` 마이그레이션에서 `APPROVED`로 백필된다.
+- 프론트엔드 관리자 콘솔에 "가입 승인" 탭(`UserApproval`)이 있다.
 
 ## 사용자 삭제
 

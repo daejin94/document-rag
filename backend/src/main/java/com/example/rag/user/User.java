@@ -34,6 +34,10 @@ public class User {
     @Column(nullable = false)
     private UserRole role = UserRole.USER;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserStatus status = UserStatus.PENDING;
+
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
@@ -68,6 +72,14 @@ public class User {
         this.role = UserRole.SUPER_ADMIN;
     }
 
+    public void approve() {
+        this.status = UserStatus.APPROVED;
+    }
+
+    public void reject() {
+        this.status = UserStatus.REJECTED;
+    }
+
     public void markDeleted() {
         this.deletedAt = Instant.now();
     }
@@ -78,6 +90,14 @@ public class User {
 
     public boolean isSuperAdmin() {
         return role == UserRole.SUPER_ADMIN;
+    }
+
+    public boolean isPending() {
+        return status == UserStatus.PENDING;
+    }
+
+    public boolean isApproved() {
+        return status == UserStatus.APPROVED;
     }
 
     public Long getId() {
@@ -98,6 +118,10 @@ public class User {
 
     public UserRole getRole() {
         return role;
+    }
+
+    public UserStatus getStatus() {
+        return status;
     }
 
     public Instant getDeletedAt() {

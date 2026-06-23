@@ -15,6 +15,8 @@ export type ProjectRole = 'ADMIN' | 'MEMBER';
 
 export type UserRole = 'USER' | 'SUPER_ADMIN';
 
+export type UserStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
 export interface DailyUsage {
   date: string;
   chatPromptTokens: number;
@@ -28,6 +30,7 @@ export interface AdminUser {
   email: string;
   name: string;
   role: UserRole;
+  status: UserStatus;
   createdAt: string;
   totalTokens: number;
 }

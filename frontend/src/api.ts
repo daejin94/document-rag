@@ -154,6 +154,18 @@ export function deleteAdminUser(token: string, userId: number) {
   return request<{ deleted: boolean }>(`/api/admin/users/${userId}`, { method: 'DELETE' }, token);
 }
 
+export function fetchPendingUsers(token: string) {
+  return request<AdminUser[]>('/api/admin/users/pending', {}, token);
+}
+
+export function approveUser(token: string, userId: number) {
+  return request<AdminUser>(`/api/admin/users/${userId}/approve`, { method: 'POST' }, token);
+}
+
+export function rejectUser(token: string, userId: number) {
+  return request<AdminUser>(`/api/admin/users/${userId}/reject`, { method: 'POST' }, token);
+}
+
 export function fetchAdminProjects(token: string) {
   return request<AdminProject[]>('/api/admin/projects', {}, token);
 }

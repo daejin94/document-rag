@@ -41,6 +41,12 @@ public class AuthService {
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.");
         }
+        // 비밀번호 확인 후에 가입 승인 상태를 검사한다(계정 존재 여부 노출을 줄이기 위함).
+        switch (user.getStatus()) {
+            case PENDING -> throw new ApiException(HttpStatus.FORBIDDEN, "가입 승인 대기 중입니다. 관리자 승인 후 로그인할 수 있습니다.");
+            case REJECTED -> throw new ApiException(HttpStatus.FORBIDDEN, "가입이 거절되었습니다. 관리자에게 문의해주세요.");
+            default -> { /* APPROVED: 통과 */ }
+        }
         String accessToken = jwtService.createAccessToken(user.getId(), user.getEmail(), user.getRole());
         return new LoginResponse(accessToken, accessToken);
     }

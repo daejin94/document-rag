@@ -34,10 +34,19 @@ public class SuperAdminInitializer implements ApplicationRunner {
             return;
         }
         userRepository.findByEmail(email.trim()).ifPresentOrElse(user -> {
+            // 관리자 계정은 자기 자신을 승인할 수 없으므로(chicken-and-egg) 승격 시 함께 승인 처리한다.
+            boolean changed = false;
             if (!user.isSuperAdmin()) {
                 user.promoteToSuperAdmin();
+                changed = true;
+            }
+            if (!user.isApproved()) {
+                user.approve();
+                changed = true;
+            }
+            if (changed) {
                 userRepository.save(user);
-                log.info("'{}' 계정을 SUPER_ADMIN으로 승격했습니다.", email);
+                log.info("'{}' 계정을 SUPER_ADMIN으로 승격/승인했습니다.", email);
             }
         }, () -> log.warn("SUPER_ADMIN_EMAIL '{}'에 해당하는 계정이 없어 승격을 건너뜁니다.", email));
     }

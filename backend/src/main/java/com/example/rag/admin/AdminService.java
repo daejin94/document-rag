@@ -8,6 +8,7 @@ import com.example.rag.project.ProjectMemberRepository;
 import com.example.rag.project.ProjectRepository;
 import com.example.rag.user.User;
 import com.example.rag.user.UserRepository;
+import com.example.rag.user.UserStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,16 +61,54 @@ public class AdminService {
     @Transactional(readOnly = true)
     public List<AdminUserResponse> listUsers() {
         Map<Long, Long> totals = adminUsageRepository.totalTokensByUser();
-        return userRepository.findAllByDeletedAtIsNullOrderByCreatedAtDesc().stream()
-                .map(user -> new AdminUserResponse(
-                        user.getId(),
-                        user.getEmail(),
-                        user.getName(),
-                        user.getRole(),
-                        user.getCreatedAt(),
-                        totals.getOrDefault(user.getId(), 0L)
-                ))
+        return userRepository.findAllByStatusAndDeletedAtIsNullOrderByCreatedAtDesc(UserStatus.APPROVED).stream()
+                .map(user -> toUserResponse(user, totals.getOrDefault(user.getId(), 0L)))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminUserResponse> listPendingUsers() {
+        // 승인 대기 계정은 아직 시스템을 사용하지 않았으므로 누적 토큰은 0이다.
+        return userRepository.findAllByStatusAndDeletedAtIsNullOrderByCreatedAtDesc(UserStatus.PENDING).stream()
+                .map(user -> toUserResponse(user, 0L))
+                .toList();
+    }
+
+    @Transactional
+    public AdminUserResponse approveUser(Long targetUserId) {
+        User target = requirePendingUser(targetUserId);
+        target.approve();
+        userRepository.save(target);
+        return toUserResponse(target, 0L);
+    }
+
+    @Transactional
+    public AdminUserResponse rejectUser(Long targetUserId) {
+        User target = requirePendingUser(targetUserId);
+        target.reject();
+        userRepository.save(target);
+        return toUserResponse(target, 0L);
+    }
+
+    private User requirePendingUser(Long targetUserId) {
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
+        if (target.isDeleted() || !target.isPending()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "승인 대기 중인 사용자가 아닙니다.");
+        }
+        return target;
+    }
+
+    private AdminUserResponse toUserResponse(User user, long totalTokens) {
+        return new AdminUserResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getName(),
+                user.getRole(),
+                user.getStatus(),
+                user.getCreatedAt(),
+                totalTokens
+        );
     }
 
     @Transactional(readOnly = true)

@@ -1,5 +1,16 @@
 # 작업 완료
 
+## 회원 가입 승인 기능 (2026-06-23)
+
+- 시작일: 2026-06-23
+- 완료일: 2026-06-23
+- 목적: 회원 가입을 즉시 활성화하지 않고 대기 상태로 두어, 관리자 승인 후에만 로그인 가능하도록 변경. 관리자 콘솔에 가입 승인 페이지 추가.
+- 현재 상태: 완료. 백엔드 컴파일·테스트, 프론트 빌드 통과.
+  - 백엔드: `UserStatus`(PENDING/APPROVED/REJECTED) enum + `User.status`(기본 PENDING), V8 마이그레이션(기존 사용자 APPROVED 백필). `AuthService.signup`은 PENDING으로 생성(자동 로그인 없음), `login`은 비밀번호 검증 후 상태 확인해 PENDING/REJECTED는 403. `SuperAdminInitializer`가 승격 시 함께 APPROVED 처리(chicken-and-egg 방지). `AdminController`/`AdminService`에 `GET /api/admin/users/pending`, `POST .../{id}/approve`, `POST .../{id}/reject` 추가. 유저 목록은 APPROVED만 반환. `AdminUserResponse`에 status 추가.
+  - 프론트: `AuthScreen` 가입 후 자동 로그인 대신 "승인 대기" 안내 후 로그인 모드 전환. 관리자 콘솔에 "가입 승인" 탭(`UserApproval`) 추가. api/types에 status·승인 함수 추가.
+  - 문서: `docs/api.md`, `docs/feat/admin.md` 갱신.
+- 관련 파일: backend `user/{User,UserStatus,UserRepository}`, `auth/AuthService`, `admin/{AdminController,AdminService,AdminUserResponse,SuperAdminInitializer}`, `db/migration/V8__add_user_status.sql`; frontend `components/AuthScreen.tsx`, `components/admin/{AdminApp,UserApproval}.tsx`, `api.ts`, `types.ts`; `docs/api.md`, `docs/feat/admin.md`.
+
 ## 관리자(Super Admin) 페이지 추가 (2026-06-23)
 
 - 시작일: 2026-06-23

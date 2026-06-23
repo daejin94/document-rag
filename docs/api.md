@@ -61,6 +61,8 @@ Content-Type: application/json
 }
 ```
 
+가입한 계정은 **승인 대기(PENDING)** 상태로 생성되며, 관리자가 승인하기 전까지는 로그인할 수 없다. 승인 처리는 [feat/admin.md](feat/admin.md)를 참고한다.
+
 ### 로그인
 
 ```http
@@ -87,6 +89,8 @@ Content-Type: application/json
 ```
 
 현재 MVP에서는 `refreshToken`이 `accessToken`과 동일하게 반환된다. JWT payload에는 전역 역할 `role`(`USER` / `SUPER_ADMIN`) 클레임이 포함되며, 프론트엔드는 이 값으로 관리자 화면 진입을 가른다.
+
+가입 승인 상태에 따라 로그인이 제한된다. 비밀번호 검증 후 상태를 확인하며, `PENDING`(승인 대기)·`REJECTED`(거절)인 계정은 `403`을 반환한다.
 
 ## 접근 제어 개요
 
@@ -461,7 +465,10 @@ Authorization: Bearer <ACCESS_TOKEN>
 | Method | Path | 설명 |
 |---|---|---|
 | GET | `/api/admin/usage/daily` | 시스템 전체 일자별 토큰 사용량 |
-| GET | `/api/admin/users` | 사용자 목록(+누적 토큰) |
+| GET | `/api/admin/users` | 승인된 사용자 목록(+누적 토큰) |
+| GET | `/api/admin/users/pending` | 승인 대기 가입 신청 목록 |
+| POST | `/api/admin/users/{userId}/approve` | 가입 승인 |
+| POST | `/api/admin/users/{userId}/reject` | 가입 거절 |
 | GET | `/api/admin/users/{userId}/usage/daily` | 사용자별 일자별 사용량 |
 | DELETE | `/api/admin/users/{userId}` | 사용자 soft delete |
 | GET | `/api/admin/projects` | 프로젝트 목록(+멤버, 누적 토큰) |
@@ -508,11 +515,25 @@ Authorization: Bearer <ACCESS_TOKEN>
     "email": "owner@example.com",
     "name": "대진",
     "role": "USER",
+    "status": "APPROVED",
     "createdAt": "2026-06-01T00:00:00Z",
     "totalTokens": 5400
   }
 ]
 ```
+
+`status`는 `PENDING` / `APPROVED` / `REJECTED`다. 이 목록은 `APPROVED` 계정만 반환한다.
+
+### 가입 승인 / 거절
+
+```http
+GET  /api/admin/users/pending      # 승인 대기 목록(status=PENDING)
+POST /api/admin/users/3/approve    # 승인 → status=APPROVED, 로그인 가능
+POST /api/admin/users/3/reject     # 거절 → status=REJECTED, 로그인 불가
+Authorization: Bearer <ACCESS_TOKEN>
+```
+
+`approve`/`reject` 응답은 갱신된 사용자 객체(`AdminUser`)다. 대상이 승인 대기(PENDING) 상태가 아니면 `400`을 반환한다.
 
 ### 사용자 삭제
 

@@ -15,15 +15,27 @@ export function AuthScreen({ onAuthenticated, sessionExpired = false }: AuthScre
   const [password, setPassword] = useState('password1234');
   const [name, setName] = useState('대진');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
+
+  function switchMode(next: AuthMode) {
+    setMode(next);
+    setError('');
+    setNotice('');
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError('');
+    setNotice('');
     setBusy(true);
     try {
       if (mode === 'signup') {
+        // 가입은 승인 대기 상태로 생성된다. 자동 로그인하지 않고 안내 후 로그인 화면으로 전환한다.
         await signup(email, password, name);
+        setMode('login');
+        setNotice('가입 신청이 완료되었습니다. 관리자 승인 후 로그인할 수 있습니다.');
+        return;
       }
       const response = await login(email, password);
       onAuthenticated(response.accessToken);
@@ -42,16 +54,17 @@ export function AuthScreen({ onAuthenticated, sessionExpired = false }: AuthScre
           <span>DocQ</span>
         </div>
         <div className="segmented">
-          <button className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')} type="button">
+          <button className={mode === 'login' ? 'active' : ''} onClick={() => switchMode('login')} type="button">
             <Bot size={16} />
             로그인
           </button>
-          <button className={mode === 'signup' ? 'active' : ''} onClick={() => setMode('signup')} type="button">
+          <button className={mode === 'signup' ? 'active' : ''} onClick={() => switchMode('signup')} type="button">
             <UserPlus size={16} />
             회원가입
           </button>
         </div>
-        {sessionExpired && (
+        {notice && <p className="notice-text">{notice}</p>}
+        {sessionExpired && !notice && (
           <p className="notice-text">세션이 만료되었습니다. 다시 로그인해주세요.</p>
         )}
         <form className="auth-form" onSubmit={submit}>
@@ -72,7 +85,7 @@ export function AuthScreen({ onAuthenticated, sessionExpired = false }: AuthScre
           {error && <p className="error-text">{error}</p>}
           <button className="primary-button" disabled={busy} type="submit">
             {busy ? <RefreshCw className="spin" size={18} /> : <Check size={18} />}
-            {mode === 'login' ? '로그인' : '가입 후 로그인'}
+            {mode === 'login' ? '로그인' : '가입 신청'}
           </button>
         </form>
       </section>

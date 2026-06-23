@@ -2724,9 +2724,17 @@ h1 {
   background: rgba(0, 102, 204, 0.04);
 }
 
-.admin-table .ghost-button.danger-button {
+/* 표 액션 버튼은 크기/여백을 공통으로 맞춘다(승인·거절·삭제가 같은 모양) */
+.admin-table .action-col .ghost-button {
   height: 32px;
   padding: 0 14px;
+}
+
+.admin-table .action-col .ghost-button + .ghost-button {
+  margin-left: 8px;
+}
+
+.admin-table .ghost-button.danger-button {
   background: transparent;
   border-color: #d70015;
   color: #d70015;

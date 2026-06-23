@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react';
 import { ProjectManagement } from './ProjectManagement';
 import { UsageDashboard } from './UsageDashboard';
+import { UserApproval } from './UserApproval';
 import { UserManagement } from './UserManagement';
 
-type AdminTab = 'usage' | 'users' | 'projects';
+type AdminTab = 'usage' | 'approvals' | 'users' | 'projects';
 
 const TABS: { key: AdminTab; label: string }[] = [
   { key: 'usage', label: '토큰 사용량' },
+  { key: 'approvals', label: '가입 승인' },
   { key: 'users', label: '유저 관리' },
   { key: 'projects', label: '프로젝트 관리' },
 ];
@@ -57,6 +59,7 @@ export function AdminApp({ token, onLogout }: { token: string; onLogout: () => v
 
       <main className="admin-content">
         {tab === 'usage' && <UsageDashboard token={token} />}
+        {tab === 'approvals' && <UserApproval token={token} />}
         {tab === 'users' && <UserManagement token={token} currentEmail={email} />}
         {tab === 'projects' && <ProjectManagement token={token} />}
       </main>
