@@ -86,21 +86,176 @@ Content-Type: application/json
 }
 ```
 
-현재 MVP에서는 `refreshToken`이 `accessToken`과 동일하게 반환된다.
+현재 MVP에서는 `refreshToken`이 `accessToken`과 동일하게 반환된다. JWT payload에는 전역 역할 `role`(`USER` / `SUPER_ADMIN`) 클레임이 포함되며, 프론트엔드는 이 값으로 관리자 화면 진입을 가른다.
+
+## 접근 제어 개요
+
+접근 제어는 **project 단위**다. 문서와 채팅은 프로젝트에 속하며, 경로도 `/api/projects/{projectId}/...` 아래에 있다. 각 작업은 처리 전에 `requireMember`(멤버) 또는 `requireAdmin`(프로젝트 ADMIN) 가드를 통과해야 하고, 권한이 없으면 `403`을 반환한다. 자세한 규칙은 [feat/projects.md](feat/projects.md)를 참고한다.
+
+`/api/admin/**`는 전역 `SUPER_ADMIN`만 접근할 수 있다. [feat/admin.md](feat/admin.md)를 참고한다.
+
+## Projects
+
+| Method | Path | 권한 | 설명 |
+|---|---|---|---|
+| POST | `/api/projects` | 인증 | 프로젝트 생성 |
+| GET | `/api/projects` | 인증 | 내가 속한 프로젝트 목록 |
+| DELETE | `/api/projects/{projectId}` | 프로젝트 ADMIN | 프로젝트 삭제 |
+| GET | `/api/projects/{projectId}/members` | 프로젝트 멤버 | 멤버 목록 |
+| POST | `/api/projects/{projectId}/members` | 프로젝트 ADMIN | 멤버 추가 |
+| DELETE | `/api/projects/{projectId}/members/{memberUserId}` | 프로젝트 ADMIN | 멤버 제거 |
+
+### 프로젝트 생성
+
+```http
+POST /api/projects
+Authorization: Bearer <ACCESS_TOKEN>
+Content-Type: application/json
+```
+
+요청:
+
+```json
+{
+  "name": "제품 매뉴얼",
+  "description": "선택, 최대 500자"
+}
+```
+
+응답(생성자는 자동으로 ADMIN):
+
+```json
+{
+  "projectId": 1,
+  "name": "제품 매뉴얼",
+  "description": "선택, 최대 500자",
+  "role": "ADMIN",
+  "createdAt": "2026-06-01T00:00:00Z"
+}
+```
+
+### 프로젝트 목록
+
+```http
+GET /api/projects
+Authorization: Bearer <ACCESS_TOKEN>
+```
+
+응답:
+
+```json
+[
+  {
+    "projectId": 1,
+    "name": "제품 매뉴얼",
+    "description": null,
+    "role": "ADMIN",
+    "createdAt": "2026-06-01T00:00:00Z"
+  }
+]
+```
+
+`role`은 해당 사용자의 그 프로젝트 내 역할이다.
+
+### 프로젝트 삭제
+
+```http
+DELETE /api/projects/1
+Authorization: Bearer <ACCESS_TOKEN>
+```
+
+응답:
+
+```json
+{
+  "deleted": true
+}
+```
+
+삭제는 soft delete이며 ADMIN만 가능하다.
+
+### 멤버 목록
+
+```http
+GET /api/projects/1/members
+Authorization: Bearer <ACCESS_TOKEN>
+```
+
+응답:
+
+```json
+[
+  {
+    "userId": 1,
+    "email": "owner@example.com",
+    "name": "대진",
+    "role": "ADMIN",
+    "joinedAt": "2026-06-01T00:00:00Z"
+  }
+]
+```
+
+### 멤버 추가
+
+```http
+POST /api/projects/1/members
+Authorization: Bearer <ACCESS_TOKEN>
+Content-Type: application/json
+```
+
+요청(`role` 생략 시 `MEMBER`):
+
+```json
+{
+  "email": "member@example.com",
+  "role": "MEMBER"
+}
+```
+
+응답:
+
+```json
+{
+  "userId": 2,
+  "email": "member@example.com",
+  "name": "민수",
+  "role": "MEMBER",
+  "joinedAt": "2026-06-02T00:00:00Z"
+}
+```
+
+이미 멤버이면 `409 Conflict`를 반환한다.
+
+### 멤버 제거
+
+```http
+DELETE /api/projects/1/members/2
+Authorization: Bearer <ACCESS_TOKEN>
+```
+
+응답:
+
+```json
+{
+  "deleted": true
+}
+```
+
+자기 자신이거나 프로젝트의 마지막 ADMIN이면 `400`을 반환한다.
 
 ## Documents
 
-| Method | Path | 인증 | 설명 |
+| Method | Path | 권한 | 설명 |
 |---|---|---|---|
-| POST | `/api/documents` | 필요 | 문서 업로드 |
-| GET | `/api/documents` | 필요 | 내 문서 목록 조회 |
-| GET | `/api/documents/{documentId}` | 필요 | 내 문서 상세 조회 |
-| DELETE | `/api/documents/{documentId}` | 필요 | 내 문서 삭제 |
+| POST | `/api/projects/{projectId}/documents` | 프로젝트 멤버 | 문서 업로드 |
+| GET | `/api/projects/{projectId}/documents` | 프로젝트 멤버 | 문서 목록 조회 |
+| GET | `/api/projects/{projectId}/documents/{documentId}` | 프로젝트 멤버 | 문서 상세 조회 |
+| DELETE | `/api/projects/{projectId}/documents/{documentId}` | 프로젝트 ADMIN | 문서 삭제 |
 
 ### 문서 업로드
 
 ```http
-POST /api/documents
+POST /api/projects/1/documents
 Authorization: Bearer <ACCESS_TOKEN>
 Content-Type: multipart/form-data
 ```
@@ -125,7 +280,7 @@ Content-Type: multipart/form-data
 ### 문서 목록
 
 ```http
-GET /api/documents
+GET /api/projects/1/documents
 Authorization: Bearer <ACCESS_TOKEN>
 ```
 
@@ -146,7 +301,7 @@ Authorization: Bearer <ACCESS_TOKEN>
 ### 문서 상세
 
 ```http
-GET /api/documents/1
+GET /api/projects/1/documents/1
 Authorization: Bearer <ACCESS_TOKEN>
 ```
 
@@ -166,7 +321,7 @@ Authorization: Bearer <ACCESS_TOKEN>
 ### 문서 삭제
 
 ```http
-DELETE /api/documents/1
+DELETE /api/projects/1/documents/1
 Authorization: Bearer <ACCESS_TOKEN>
 ```
 
@@ -178,18 +333,20 @@ Authorization: Bearer <ACCESS_TOKEN>
 }
 ```
 
+문서 삭제는 프로젝트 ADMIN만 가능하다.
+
 ## Chat
 
-| Method | Path | 인증 | 설명 |
+| Method | Path | 권한 | 설명 |
 |---|---|---|---|
-| POST | `/api/chat/query` | 필요 | 문서 기반 질문 |
-| GET | `/api/chat/sessions` | 필요 | 내 채팅 세션 목록 |
-| GET | `/api/chat/sessions/{sessionId}/messages` | 필요 | 세션 메시지 목록 |
+| POST | `/api/projects/{projectId}/chat/query` | 프로젝트 멤버 | 문서 기반 질문 |
+| GET | `/api/projects/{projectId}/chat/sessions` | 프로젝트 멤버 | 채팅 세션 목록 |
+| GET | `/api/projects/{projectId}/chat/sessions/{sessionId}/messages` | 프로젝트 멤버 | 세션 메시지 목록 |
 
 ### 질문
 
 ```http
-POST /api/chat/query
+POST /api/projects/1/chat/query
 Authorization: Bearer <ACCESS_TOKEN>
 Content-Type: application/json
 ```
@@ -204,7 +361,7 @@ Content-Type: application/json
 }
 ```
 
-`documentIds`가 비어 있거나 `null`이면 사용자 소유의 `COMPLETED` 문서 전체를 검색 대상으로 삼는다.
+`documentIds`가 비어 있거나 `null`이면 프로젝트의 `COMPLETED` 문서 전체를 검색 대상으로 삼는다. `documentIds`에 다른 프로젝트의 문서 id가 포함되면 `403`을 반환한다.
 `sessionId`가 `null`이거나 없으면 새 채팅 세션을 생성한다. 기존 세션 id를 보내면 해당 세션의 최근 대화 맥락을 함께 사용한다.
 
 응답:
@@ -245,7 +402,7 @@ Content-Type: application/json
 ### 채팅 세션 목록
 
 ```http
-GET /api/chat/sessions
+GET /api/projects/1/chat/sessions
 Authorization: Bearer <ACCESS_TOKEN>
 ```
 
@@ -265,7 +422,7 @@ Authorization: Bearer <ACCESS_TOKEN>
 ### 세션 메시지 목록
 
 ```http
-GET /api/chat/sessions/1/messages
+GET /api/projects/1/chat/sessions/1/messages
 Authorization: Bearer <ACCESS_TOKEN>
 ```
 
@@ -293,6 +450,113 @@ Authorization: Bearer <ACCESS_TOKEN>
       }
     ],
     "createdAt": "2026-05-15T00:00:01Z"
+  }
+]
+```
+
+## Admin
+
+전역 `SUPER_ADMIN`만 접근할 수 있다. 일반 `USER` 토큰으로 호출하면 `403`을 반환한다. 자세한 내용은 [feat/admin.md](feat/admin.md)를 참고한다.
+
+| Method | Path | 설명 |
+|---|---|---|
+| GET | `/api/admin/usage/daily` | 시스템 전체 일자별 토큰 사용량 |
+| GET | `/api/admin/users` | 사용자 목록(+누적 토큰) |
+| GET | `/api/admin/users/{userId}/usage/daily` | 사용자별 일자별 사용량 |
+| DELETE | `/api/admin/users/{userId}` | 사용자 soft delete |
+| GET | `/api/admin/projects` | 프로젝트 목록(+멤버, 누적 토큰) |
+| GET | `/api/admin/projects/{projectId}/usage/daily` | 프로젝트별 일자별 사용량 |
+
+일자별 사용량 엔드포인트는 선택 쿼리 파라미터 `from`, `to`(ISO date)로 기간을 제한할 수 있다.
+
+### 일자별 사용량
+
+```http
+GET /api/admin/usage/daily?from=2026-06-01&to=2026-06-23
+Authorization: Bearer <ACCESS_TOKEN>
+```
+
+응답(날짜 그룹화는 KST 기준):
+
+```json
+[
+  {
+    "date": "2026-06-01",
+    "chatPromptTokens": 1200,
+    "chatCompletionTokens": 800,
+    "embeddingTokens": 3400,
+    "totalTokens": 5400
+  }
+]
+```
+
+`chatPromptTokens`/`chatCompletionTokens`는 `CHAT` 사용분, `embeddingTokens`는 `EMBEDDING_QUERY` + `EMBEDDING_UPLOAD` 사용분이다. 사용자별/프로젝트별 엔드포인트도 같은 형태를 반환한다.
+
+### 사용자 목록
+
+```http
+GET /api/admin/users
+Authorization: Bearer <ACCESS_TOKEN>
+```
+
+응답:
+
+```json
+[
+  {
+    "userId": 1,
+    "email": "owner@example.com",
+    "name": "대진",
+    "role": "USER",
+    "createdAt": "2026-06-01T00:00:00Z",
+    "totalTokens": 5400
+  }
+]
+```
+
+### 사용자 삭제
+
+```http
+DELETE /api/admin/users/2
+Authorization: Bearer <ACCESS_TOKEN>
+```
+
+응답:
+
+```json
+{
+  "deleted": true
+}
+```
+
+자기 자신이거나 이미 삭제된 사용자이면 `400`을 반환한다.
+
+### 프로젝트 목록
+
+```http
+GET /api/admin/projects
+Authorization: Bearer <ACCESS_TOKEN>
+```
+
+응답:
+
+```json
+[
+  {
+    "projectId": 1,
+    "name": "제품 매뉴얼",
+    "description": null,
+    "createdAt": "2026-06-01T00:00:00Z",
+    "createdByEmail": "owner@example.com",
+    "members": [
+      {
+        "userId": 1,
+        "email": "owner@example.com",
+        "name": "대진",
+        "role": "ADMIN"
+      }
+    ],
+    "totalTokens": 5400
   }
 ]
 ```

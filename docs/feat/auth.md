@@ -48,11 +48,18 @@
 
 현재 MVP에서는 `refreshToken`이 `accessToken`과 동일하다.
 
+## 전역 역할
+
+- 사용자에는 전역 역할(`UserRole`) `USER`(기본) 또는 `SUPER_ADMIN`이 있다. 회원가입은 항상 `USER`로 생성한다.
+- JWT payload에 `role` 클레임이 포함된다. 프론트엔드는 이 값으로 관리자 화면 진입 여부를 가른다.
+- 프로젝트 멤버 역할(ADMIN/MEMBER)과는 별개다. 자세한 내용은 [projects.md](projects.md), [admin.md](admin.md)를 참고한다.
+
 ## JWT
 
 - `JWT_SECRET`은 최소 32바이트 이상이어야 한다.
 - access token 만료 시간 기본값은 120분이다.
 - 인증 필터는 Bearer token을 검증하고 인증 사용자 정보를 SecurityContext에 넣는다.
+- access token이 만료되면 보호된 API는 `401`을 반환한다. 프론트엔드는 이 응답을 받으면 토큰을 비우고 로그인 화면으로 보내며 "세션 만료" 안내를 표시한다.
 
 ## 보안 설정
 
@@ -65,4 +72,4 @@
 
 - 인증 우회 로직을 추가하지 않는다.
 - refresh token 저장소 구현은 사용자가 요청한 경우에만 추가한다.
-- 사용자 id 기반 데이터 접근 제한을 제거하지 않는다.
+- 프로젝트 단위 접근 제어(멤버십 가드)를 제거하지 않는다.

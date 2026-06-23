@@ -40,10 +40,31 @@ OPENAI_CHAT_MODEL
 - refresh token은 현재 별도 저장소 없이 access token과 동일하게 반환하는 MVP 형태이다.
 - 저장소 기반 refresh token은 사용자가 명시 요청한 경우에만 구현한다.
 
+## 접근 제어
+
+- 접근 제어는 **user 단위가 아니라 project 단위**다. 문서와 채팅은 프로젝트에 속한다.
+- 문서·채팅 작업은 처리 전에 `ProjectService.requireMember` 또는 `requireAdmin`을 먼저 호출한다. 가드는 애너테이션이 아니라 명시적 메서드 호출이다.
+- 프로젝트 멤버 역할(`ProjectRole`)은 `ADMIN`(멤버 관리, 문서 삭제, 프로젝트 삭제)과 `MEMBER`(업로드, 질문, 조회)다.
+- 프로젝트 생성자는 자동으로 `ADMIN`이 된다. 프로젝트에는 항상 ADMIN이 최소 1명 남아야 한다.
+- 전역 사용자 역할(`UserRole`)은 `USER`(기본)와 `SUPER_ADMIN`이다. `SUPER_ADMIN`만 `/api/admin/**`에 접근한다.
+- 자세한 규칙: [feat/projects.md](feat/projects.md), [feat/admin.md](feat/admin.md).
+
+## 토큰 사용량
+
+- OpenAI 호출마다 `token_usages`에 사용량을 기록한다. prompt/completion 토큰이 모두 0이면 저장하지 않는다.
+- `usage_type`으로 `CHAT`, `EMBEDDING_QUERY`, `EMBEDDING_UPLOAD`를 구분한다. 관리자 집계는 이 구분에 의존하므로 유지한다.
+- 관리자 일자별 집계의 날짜 그룹화는 KST(Asia/Seoul) 기준이다.
+
+## Soft delete
+
+- 사용자 삭제는 `app_users.deleted_at`을 설정하는 soft delete다. 자기 자신/이미 삭제된 사용자는 삭제할 수 없다.
+- 프로젝트 삭제는 `project_deletions` 테이블에 기록하는 soft delete다.
+- 문서·세션 삭제는 hard delete다(연관 데이터는 FK `ON DELETE CASCADE`로 정리).
+
 ## RAG 검색
 
 - 질문 시 문서 chunk 검색은 PostgreSQL pgvector cosine distance 기준으로 수행한다.
-- 검색 대상은 현재 사용자 소유 문서로 제한한다.
+- 검색 대상은 요청 프로젝트의 문서로 제한한다(요청자는 해당 프로젝트 멤버여야 한다).
 - 문서 상태가 `COMPLETED`인 chunk만 검색한다.
 - `documentIds`가 있으면 해당 문서 id로 추가 필터링한다.
 - 검색 결과가 없거나 최상위 similarity가 threshold보다 낮으면 고정 답변을 반환한다.

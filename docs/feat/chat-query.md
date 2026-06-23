@@ -4,13 +4,13 @@
 
 ## API
 
-| Method | Path | 설명 |
+| Method | Path | 권한 |
 |---|---|---|
-| POST | `/api/chat/query` | 문서 기반 질문 |
-| GET | `/api/chat/sessions` | 내 채팅 세션 목록 |
-| GET | `/api/chat/sessions/{sessionId}/messages` | 세션 메시지 목록 |
+| POST | `/api/projects/{projectId}/chat/query` | 프로젝트 멤버 |
+| GET | `/api/projects/{projectId}/chat/sessions` | 프로젝트 멤버 |
+| GET | `/api/projects/{projectId}/chat/sessions/{sessionId}/messages` | 프로젝트 멤버 |
 
-모든 Chat API는 JWT 인증이 필요하다.
+모든 Chat API는 JWT 인증이 필요하고, 작업 전 `requireMember`로 프로젝트 멤버인지 확인한다. 세션은 `(userId, projectId)` 스코프다.
 
 ## 질문 요청
 
@@ -22,13 +22,13 @@
 | `documentIds` | 선택 | 검색 대상으로 제한할 문서 id 목록 |
 | `sessionId` | 선택 | 이어갈 채팅 세션 id |
 
-`documentIds`가 `null`이거나 비어 있으면 사용자 소유의 모든 `COMPLETED` 문서를 검색 대상으로 삼는다.
-`sessionId`가 없으면 새 세션을 만들고, 있으면 현재 사용자 소유 세션인지 확인한 뒤 그 세션에 메시지를 이어서 저장한다.
+`documentIds`가 `null`이거나 비어 있으면 프로젝트의 모든 `COMPLETED` 문서를 검색 대상으로 삼는다.
+`sessionId`가 없으면 새 세션을 만들고, 있으면 `(sessionId, userId, projectId)`로 조회해 그 세션에 메시지를 이어서 저장한다.
 
 ## 처리 흐름
 
-1. 인증 사용자 id로 사용자를 조회한다.
-2. `documentIds`가 있으면 모두 현재 사용자 소유인지 확인한다.
+1. `requireMember(projectId, userId)`로 프로젝트 멤버인지 확인한다.
+2. `documentIds`가 있으면 모두 해당 프로젝트 소속인지 확인한다(아니면 `403`).
 3. `sessionId`가 있으면 기존 세션을 조회하고, 없으면 질문으로 새 세션을 생성한다.
 4. 세션의 최근 메시지를 대화 히스토리로 조회한다.
 5. 사용자 메시지를 저장한다.
@@ -44,7 +44,7 @@
 
 검색 SQL은 다음 조건을 유지해야 한다.
 
-- `documents.user_id = 현재 사용자 id`
+- `documents.project_id = 요청 프로젝트 id`
 - `documents.status = 'COMPLETED'`
 - `documentIds`가 있으면 `documents.id IN (:documentIds)`
 
@@ -90,9 +90,18 @@
 - 사용자 메시지와 assistant 메시지를 저장한다.
 - assistant 메시지 조회 시 저장된 `answer_sources`를 통해 출처를 함께 반환한다.
 
+## 토큰 사용량
+
+질문 처리 중 발생한 토큰은 `token_usages`에 기록된다.
+
+- 질문 embedding(검색용)은 `EMBEDDING_QUERY`로 기록한다.
+- chat 모델 답변은 `CHAT`(prompt + completion)으로 기록한다.
+
+집계는 [admin.md](admin.md)를 참고한다.
+
 ## 주의사항
 
-- 사용자별 문서 접근 제한을 제거하지 않는다.
-- `documentIds` 검증을 생략하지 않는다.
+- 프로젝트 단위 문서 접근 제한을 제거하지 않는다.
+- `documentIds`의 프로젝트 소속 검증을 생략하지 않는다.
 - 검색 결과가 없는 경우를 무시하지 않는다.
 - 출처 저장과 반환 구조를 깨뜨리지 않는다.

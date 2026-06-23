@@ -1,0 +1,195 @@
+# 데이터베이스 스키마
+
+PostgreSQL + pgvector 기준이다. 스키마 변경은 **JPA entity만 바꾸지 않고 새 Flyway 마이그레이션**으로 처리한다(`ddl-auto: validate`). 마이그레이션은 `backend/src/main/resources/db/migration/`에 있다.
+
+## 마이그레이션 이력
+
+| 버전 | 파일 | 내용 |
+|---|---|---|
+| V1 | `V1__init.sql` | 초기 스키마: `app_users`, `documents`, `document_chunks`, `chat_sessions`, `chat_messages`, `answer_sources`. HNSW 벡터 인덱스 포함 |
+| V2 | `V2__add_projects.sql` | `projects`, `project_members` 추가. `documents.project_id` 추가 + 기존 문서 backfill 후 `NOT NULL` |
+| V3 | `V3__add_project_to_chat_sessions.sql` | `chat_sessions.project_id` 추가 + backfill 후 `NOT NULL` |
+| V4 | `V4__add_project_description.sql` | `projects.description` 추가 |
+| V5 | `V5__add_project_deletions.sql` | `project_deletions` 추가(프로젝트 soft delete 감사) |
+| V6 | `V6__add_token_usages.sql` | `token_usages` 추가(토큰 사용량 추적) |
+| V7 | `V7__add_user_role_and_soft_delete.sql` | `app_users.role`, `app_users.deleted_at` 추가 |
+
+## ER 개요
+
+```text
+app_users 1──* project_members *──1 projects
+app_users 1──* documents *──1 projects
+documents 1──* document_chunks
+app_users 1──* chat_sessions *──1 projects
+chat_sessions 1──* chat_messages 1──* answer_sources *──1 document_chunks
+app_users 1──* token_usages   (projects, chat_sessions 선택 참조)
+projects  1──1 project_deletions
+```
+
+## 테이블
+
+### app_users
+
+사용자 계정. 전역 역할과 soft delete를 가진다.
+
+| 컬럼 | 타입 | 비고 |
+|---|---|---|
+| `id` | BIGSERIAL | PK |
+| `email` | VARCHAR(255) | NOT NULL, UNIQUE |
+| `password` | VARCHAR(255) | NOT NULL, BCrypt 해시 |
+| `name` | VARCHAR(100) | NOT NULL |
+| `role` | VARCHAR(30) | NOT NULL, DEFAULT `'USER'` (`USER` / `SUPER_ADMIN`) |
+| `deleted_at` | TIMESTAMPTZ | soft delete 시각(NULL이면 활성) |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
+| `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
+
+인덱스: `idx_app_users_role`, `idx_app_users_deleted_at`
+
+### projects
+
+문서와 채팅을 소유하는 단위. 접근 제어의 기준이다.
+
+| 컬럼 | 타입 | 비고 |
+|---|---|---|
+| `id` | BIGSERIAL | PK |
+| `name` | VARCHAR(255) | NOT NULL |
+| `description` | VARCHAR(500) | nullable (V4) |
+| `created_by_user_id` | BIGINT | NOT NULL, FK → app_users(id) ON DELETE CASCADE |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
+| `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
+
+인덱스: `idx_projects_created_by_user_id`
+
+### project_members
+
+사용자–프로젝트 멤버십과 프로젝트 내 역할.
+
+| 컬럼 | 타입 | 비고 |
+|---|---|---|
+| `id` | BIGSERIAL | PK |
+| `project_id` | BIGINT | NOT NULL, FK → projects(id) ON DELETE CASCADE |
+| `user_id` | BIGINT | NOT NULL, FK → app_users(id) ON DELETE CASCADE |
+| `role` | VARCHAR(30) | NOT NULL (`ADMIN` / `MEMBER`) |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
+
+제약: `UNIQUE(project_id, user_id)`
+인덱스: `idx_project_members_project_id`, `idx_project_members_user_id`
+
+### documents
+
+업로드된 원본 문서. 사용자(업로더)와 프로젝트에 모두 연결된다.
+
+| 컬럼 | 타입 | 비고 |
+|---|---|---|
+| `id` | BIGSERIAL | PK |
+| `user_id` | BIGINT | NOT NULL, FK → app_users(id) ON DELETE CASCADE |
+| `project_id` | BIGINT | NOT NULL, FK → projects(id) ON DELETE CASCADE (V2) |
+| `title` | VARCHAR(255) | NOT NULL |
+| `original_file_name` | VARCHAR(255) | NOT NULL |
+| `file_path` | VARCHAR(1000) | NOT NULL |
+| `content_type` | VARCHAR(255) | nullable |
+| `status` | VARCHAR(30) | NOT NULL (`UPLOADED` / `PROCESSING` / `COMPLETED` / `FAILED`) |
+| `error_message` | TEXT | 처리 실패 시 메시지 |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
+| `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
+
+인덱스: `idx_documents_user_id`, `idx_documents_project_id`
+
+### document_chunks
+
+문서를 분할한 chunk와 embedding. **`embedding` 컬럼은 JPA로 매핑하지 않고 raw SQL(`DocumentChunkJdbcRepository`)로 읽고 쓴다.**
+
+| 컬럼 | 타입 | 비고 |
+|---|---|---|
+| `id` | BIGSERIAL | PK |
+| `document_id` | BIGINT | NOT NULL, FK → documents(id) ON DELETE CASCADE |
+| `chunk_index` | INTEGER | NOT NULL |
+| `content` | TEXT | NOT NULL |
+| `embedding` | vector(1536) | NOT NULL, `text-embedding-3-small` 차원 |
+| `token_count` | INTEGER | nullable, `content.length()/4` 추정 |
+| `page_number` | INTEGER | nullable |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
+
+제약: `UNIQUE(document_id, chunk_index)`
+인덱스: `idx_document_chunks_document_id`, `idx_document_chunks_embedding_hnsw`(HNSW, `vector_cosine_ops`)
+
+### chat_sessions
+
+채팅 세션. 사용자와 프로젝트에 모두 연결된다.
+
+| 컬럼 | 타입 | 비고 |
+|---|---|---|
+| `id` | BIGSERIAL | PK |
+| `user_id` | BIGINT | NOT NULL, FK → app_users(id) ON DELETE CASCADE |
+| `project_id` | BIGINT | NOT NULL, FK → projects(id) ON DELETE CASCADE (V3) |
+| `title` | VARCHAR(255) | NOT NULL, 첫 질문 앞부분 |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
+| `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
+
+인덱스: `idx_chat_sessions_user_id`, `idx_chat_sessions_project_id`, `idx_chat_sessions_user_project`
+
+### chat_messages
+
+세션 내 메시지.
+
+| 컬럼 | 타입 | 비고 |
+|---|---|---|
+| `id` | BIGSERIAL | PK |
+| `chat_session_id` | BIGINT | NOT NULL, FK → chat_sessions(id) ON DELETE CASCADE |
+| `role` | VARCHAR(30) | NOT NULL (`USER` / `ASSISTANT`) |
+| `content` | TEXT | NOT NULL |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
+
+인덱스: `idx_chat_messages_session_id`
+
+### answer_sources
+
+assistant 답변이 근거로 사용한 chunk(출처).
+
+| 컬럼 | 타입 | 비고 |
+|---|---|---|
+| `id` | BIGSERIAL | PK |
+| `chat_message_id` | BIGINT | NOT NULL, FK → chat_messages(id) ON DELETE CASCADE |
+| `document_chunk_id` | BIGINT | NOT NULL, FK → document_chunks(id) ON DELETE CASCADE |
+| `similarity_score` | DOUBLE PRECISION | NOT NULL |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
+
+인덱스: `idx_answer_sources_message_id`
+
+### token_usages
+
+OpenAI 호출별 토큰 사용량(V6). 집계 규칙은 [feat/admin.md](feat/admin.md)를 참고한다.
+
+| 컬럼 | 타입 | 비고 |
+|---|---|---|
+| `id` | BIGSERIAL | PK |
+| `user_id` | BIGINT | NOT NULL, FK → app_users(id) ON DELETE CASCADE |
+| `project_id` | BIGINT | nullable, FK → projects(id) ON DELETE SET NULL |
+| `session_id` | BIGINT | nullable, FK → chat_sessions(id) ON DELETE SET NULL |
+| `usage_type` | VARCHAR(30) | NOT NULL (`CHAT` / `EMBEDDING_QUERY` / `EMBEDDING_UPLOAD`) |
+| `model` | VARCHAR(100) | NOT NULL |
+| `prompt_tokens` | INT | NOT NULL, DEFAULT 0 |
+| `completion_tokens` | INT | NOT NULL, DEFAULT 0 |
+| `total_tokens` | INT | NOT NULL, DEFAULT 0 |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
+
+인덱스: `idx_token_usages_user_created`(user_id, created_at), `idx_token_usages_project`
+
+### project_deletions
+
+프로젝트 soft delete 감사 기록(V5). 행이 존재하면 삭제된 프로젝트다.
+
+| 컬럼 | 타입 | 비고 |
+|---|---|---|
+| `id` | BIGSERIAL | PK |
+| `project_id` | BIGINT | NOT NULL, UNIQUE, FK → projects(id) ON DELETE CASCADE |
+| `deleted_by_user_id` | BIGINT | NOT NULL, FK → app_users(id) ON DELETE CASCADE |
+| `deleted_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
+
+인덱스: `idx_project_deletions_deleted_by_user_id`
+
+## 참고
+
+- embedding 차원(1536)은 `text-embedding-3-small`에 맞춰져 있다. embedding 모델을 바꾸면 컬럼 차원 변경과 재-embedding이 필요하다.
+- soft delete: `app_users`(`deleted_at`), `projects`(`project_deletions`). 문서·세션·메시지는 hard delete이며 FK `ON DELETE CASCADE`로 연관 데이터를 정리한다.
+- 벡터 저장/검색의 자세한 내용은 [feat/rag-flow.md](feat/rag-flow.md), 루트 `CLAUDE.md`를 참고한다.

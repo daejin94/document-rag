@@ -4,14 +4,14 @@
 
 ## API
 
-| Method | Path | 설명 |
+| Method | Path | 권한 |
 |---|---|---|
-| POST | `/api/documents` | 문서 업로드 |
-| GET | `/api/documents` | 내 문서 목록 |
-| GET | `/api/documents/{documentId}` | 내 문서 상세 |
-| DELETE | `/api/documents/{documentId}` | 내 문서 삭제 |
+| POST | `/api/projects/{projectId}/documents` | 프로젝트 멤버 |
+| GET | `/api/projects/{projectId}/documents` | 프로젝트 멤버 |
+| GET | `/api/projects/{projectId}/documents/{documentId}` | 프로젝트 멤버 |
+| DELETE | `/api/projects/{projectId}/documents/{documentId}` | 프로젝트 ADMIN |
 
-모든 문서 API는 JWT 인증이 필요하다.
+모든 문서 API는 JWT 인증이 필요하고, 작업 전 `requireMember`(삭제는 `requireAdmin`)로 프로젝트 권한을 확인한다. 자세한 규칙은 [projects.md](projects.md)를 참고한다.
 
 ## 지원 형식
 
@@ -28,11 +28,13 @@ PDF는 PDFBox로 텍스트를 추출한다. 스캔 이미지 기반 PDF처럼 �
 
 ## 업로드 처리 흐름
 
-1. 빈 파일인지 확인한다.
-2. 인증 사용자 id로 사용자를 조회한다.
+업로드는 `DocumentService.upload` 안에서 동기로 처리된다.
+
+1. `requireMember(projectId, userId)`로 프로젝트 멤버인지 확인한다.
+2. 빈 파일인지 확인한다.
 3. 원본 파일명을 확인한다.
 4. 파일을 storage root 아래에 저장한다.
-5. `documents`에 문서 record를 저장한다.
+5. `documents`에 문서 record를 저장한다(`user_id` + `project_id`).
 6. 문서 상태를 `PROCESSING`으로 변경한다.
 7. 파일 형식에 따라 텍스트를 추출한다. TXT/Markdown은 UTF-8 우선, MS949 fallback 순서로 읽고 PDF는 PDFBox로 읽는다.
 8. 텍스트를 chunk로 나눈다.
@@ -62,15 +64,17 @@ PDF는 PDFBox로 텍스트를 추출한다. 스캔 이미지 기반 PDF처럼 �
 - embedding은 `document_chunks.embedding`에 `vector(1536)`으로 저장한다.
 - chunk 검색을 위해 HNSW index를 사용한다.
 - 기본 모델은 `text-embedding-3-small`이다.
+- 업로드 시 발생한 embedding 토큰은 `token_usages`에 `EMBEDDING_UPLOAD`로 기록한다([admin.md](admin.md)).
 
 ## 접근 제한
 
-- 목록, 상세, 삭제는 모두 현재 사용자 소유 문서만 대상으로 한다.
-- 다른 사용자의 문서 id로 상세/삭제를 요청하면 문서를 찾을 수 없는 응답을 반환한다.
+- 목록, 상세, 업로드는 프로젝트 멤버만 가능하다. 삭제는 프로젝트 ADMIN만 가능하다.
+- 문서 조회는 `documentId` + `projectId` 이중 키로 한다. 다른 프로젝트의 문서 id로 상세/삭제를 요청하면 문서를 찾을 수 없는 응답을 반환한다.
 - 문서를 삭제하면 DB record와 저장된 파일을 함께 정리한다.
 
 ## 주의사항
 
 - TXT/Markdown/PDF 외 파일 지원을 임의로 추가하지 않는다.
 - chunk와 embedding의 관계를 깨뜨리지 않는다.
+- 프로젝트 멤버십 가드를 생략하지 않는다.
 - schema 변경 시 Entity, Repository, migration, 문서를 함께 확인한다.
