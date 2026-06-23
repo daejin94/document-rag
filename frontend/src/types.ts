@@ -17,8 +17,9 @@ export type UserRole = 'USER' | 'SUPER_ADMIN';
 
 export interface DailyUsage {
   date: string;
-  promptTokens: number;
-  completionTokens: number;
+  chatPromptTokens: number;
+  chatCompletionTokens: number;
+  embeddingTokens: number;
   totalTokens: number;
 }
 

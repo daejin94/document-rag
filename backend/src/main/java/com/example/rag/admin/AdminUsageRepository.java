@@ -54,8 +54,9 @@ public class AdminUsageRepository {
         }
 
         String sql = "SELECT " + KST_DAY + " AS day,"
-                + " SUM(prompt_tokens) AS prompt_tokens,"
-                + " SUM(completion_tokens) AS completion_tokens,"
+                + " COALESCE(SUM(prompt_tokens) FILTER (WHERE usage_type = 'CHAT'), 0) AS chat_prompt_tokens,"
+                + " COALESCE(SUM(completion_tokens) FILTER (WHERE usage_type = 'CHAT'), 0) AS chat_completion_tokens,"
+                + " COALESCE(SUM(total_tokens) FILTER (WHERE usage_type <> 'CHAT'), 0) AS embedding_tokens,"
                 + " SUM(total_tokens) AS total_tokens"
                 + " FROM token_usages"
                 + where
@@ -63,8 +64,9 @@ public class AdminUsageRepository {
 
         return jdbcTemplate.query(sql, params, (rs, rowNum) -> new DailyUsageResponse(
                 rs.getObject("day", LocalDate.class),
-                rs.getLong("prompt_tokens"),
-                rs.getLong("completion_tokens"),
+                rs.getLong("chat_prompt_tokens"),
+                rs.getLong("chat_completion_tokens"),
+                rs.getLong("embedding_tokens"),
                 rs.getLong("total_tokens")
         ));
     }

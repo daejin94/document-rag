@@ -2743,6 +2743,68 @@ h1 {
   opacity: 0.85;
 }
 
+.usage-card-sub {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.usage-bar-stack {
+  display: flex;
+  align-items: center;
+  height: 10px;
+  width: 100%;
+  gap: 1px;
+}
+
+.usage-bar-seg {
+  display: block;
+  height: 100%;
+  min-width: 0;
+}
+
+.usage-bar-seg:first-child {
+  border-radius: 999px 0 0 999px;
+}
+
+.usage-bar-seg:last-child {
+  border-radius: 0 999px 999px 0;
+}
+
+.usage-bar-seg.chat {
+  background: var(--action-blue);
+}
+
+.usage-bar-seg.embedding {
+  background: #34c759;
+}
+
+.usage-legend {
+  display: flex;
+  gap: 18px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.usage-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.usage-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.usage-legend-dot.chat {
+  background: var(--action-blue);
+}
+
+.usage-legend-dot.embedding {
+  background: #34c759;
+}
+
 .admin-table tbody tr.is-selected {
   background: rgba(0, 102, 204, 0.06);
 }

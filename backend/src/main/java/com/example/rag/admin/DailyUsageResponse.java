@@ -4,8 +4,9 @@ import java.time.LocalDate;
 
 public record DailyUsageResponse(
         LocalDate date,
-        long promptTokens,
-        long completionTokens,
+        long chatPromptTokens,
+        long chatCompletionTokens,
+        long embeddingTokens,
         long totalTokens
 ) {
 }
