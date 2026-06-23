@@ -1,14 +1,15 @@
 import { FormEvent, useState } from 'react';
-import { Bot, Check, LogIn, RefreshCw, Shield, UserPlus } from 'lucide-react';
+import { Bot, Check, RefreshCw, Shield, UserPlus } from 'lucide-react';
 import { login, signup } from '../api';
 
 type AuthMode = 'login' | 'signup';
 
 interface AuthScreenProps {
   onAuthenticated: (token: string) => void;
+  sessionExpired?: boolean;
 }
 
-export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
+export function AuthScreen({ onAuthenticated, sessionExpired = false }: AuthScreenProps) {
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('user@example.com');
   const [password, setPassword] = useState('password1234');
@@ -35,14 +36,6 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
 
   return (
     <main className="auth-shell">
-      <button
-        className="auth-entry-button"
-        onClick={() => setMode('login')}
-        title="로그인"
-        type="button"
-      >
-        <LogIn size={18} />
-      </button>
       <section className="auth-visual" aria-hidden="true">
         <div className="document-stack">
           <div className="paper paper-one">
@@ -75,6 +68,9 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
             회원가입
           </button>
         </div>
+        {sessionExpired && (
+          <p className="notice-text">세션이 만료되었습니다. 다시 로그인해주세요.</p>
+        )}
         <form className="auth-form" onSubmit={submit}>
           {mode === 'signup' && (
             <label>

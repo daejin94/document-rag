@@ -12,6 +12,7 @@ import {
   fetchProjects,
   fetchSessions,
   queryDocuments,
+  setUnauthorizedHandler,
 } from './api';
 import { AdminApp } from './components/admin/AdminApp';
 import { AuthScreen } from './components/AuthScreen';
@@ -58,9 +59,21 @@ function getRoleFromToken(token: string) {
 
 export function App() {
   const [token, setToken] = useState(() => localStorage.getItem(tokenKey) || '');
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  useEffect(() => {
+    // 인증된 요청이 401을 받으면(세션 만료 등) 토큰을 비우고 로그인 화면으로 돌려보낸다.
+    setUnauthorizedHandler(() => {
+      localStorage.removeItem(tokenKey);
+      setToken('');
+      setSessionExpired(true);
+    });
+    return () => setUnauthorizedHandler(null);
+  }, []);
 
   function handleAuthenticated(accessToken: string) {
     localStorage.setItem(tokenKey, accessToken);
+    setSessionExpired(false);
     setToken(accessToken);
   }
 
@@ -70,7 +83,7 @@ export function App() {
   }
 
   if (!token) {
-    return <AuthScreen onAuthenticated={handleAuthenticated} />;
+    return <AuthScreen onAuthenticated={handleAuthenticated} sessionExpired={sessionExpired} />;
   }
 
   if (getRoleFromToken(token) === 'SUPER_ADMIN') {

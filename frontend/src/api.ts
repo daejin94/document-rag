@@ -16,6 +16,13 @@ import type {
 
 const API_BASE = '';
 
+// 인증된 요청이 401을 받으면 호출된다(세션 만료 등). App이 핸들러를 등록한다.
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  unauthorizedHandler = handler;
+}
+
 async function request<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
   const headers = new Headers(options.headers);
   if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
@@ -27,6 +34,10 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
 
   const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
   if (!response.ok) {
+    // 토큰을 가진 요청이 401이면 세션이 만료된 것으로 보고 로그인 화면으로 보낸다.
+    if (response.status === 401 && token) {
+      unauthorizedHandler?.();
+    }
     let message = `HTTP ${response.status}`;
     try {
       const body = await response.json();
