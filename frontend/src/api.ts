@@ -1,6 +1,9 @@
 import type {
+  AdminProject,
+  AdminUser,
   ChatMessage,
   ChatSession,
+  DailyUsage,
   DocumentDetail,
   DocumentItem,
   LoginResponse,
@@ -112,4 +115,38 @@ export function fetchSessions(token: string, projectId: number) {
 
 export function fetchMessages(token: string, projectId: number, sessionId: number) {
   return request<ChatMessage[]>(`/api/projects/${projectId}/chat/sessions/${sessionId}/messages`, {}, token);
+}
+
+// --- 관리자(Super Admin) API ---
+
+function usageQuery(from?: string, to?: string) {
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const query = params.toString();
+  return query ? `?${query}` : '';
+}
+
+export function fetchSystemUsage(token: string, from?: string, to?: string) {
+  return request<DailyUsage[]>(`/api/admin/usage/daily${usageQuery(from, to)}`, {}, token);
+}
+
+export function fetchAdminUsers(token: string) {
+  return request<AdminUser[]>('/api/admin/users', {}, token);
+}
+
+export function fetchUserUsage(token: string, userId: number, from?: string, to?: string) {
+  return request<DailyUsage[]>(`/api/admin/users/${userId}/usage/daily${usageQuery(from, to)}`, {}, token);
+}
+
+export function deleteAdminUser(token: string, userId: number) {
+  return request<{ deleted: boolean }>(`/api/admin/users/${userId}`, { method: 'DELETE' }, token);
+}
+
+export function fetchAdminProjects(token: string) {
+  return request<AdminProject[]>('/api/admin/projects', {}, token);
+}
+
+export function fetchProjectUsage(token: string, projectId: number, from?: string, to?: string) {
+  return request<DailyUsage[]>(`/api/admin/projects/${projectId}/usage/daily${usageQuery(from, to)}`, {}, token);
 }

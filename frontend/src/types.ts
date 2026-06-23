@@ -13,6 +13,41 @@ export interface SignupResponse {
 
 export type ProjectRole = 'ADMIN' | 'MEMBER';
 
+export type UserRole = 'USER' | 'SUPER_ADMIN';
+
+export interface DailyUsage {
+  date: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
+export interface AdminUser {
+  userId: number;
+  email: string;
+  name: string;
+  role: UserRole;
+  createdAt: string;
+  totalTokens: number;
+}
+
+export interface AdminProjectMember {
+  userId: number;
+  email: string;
+  name: string;
+  role: ProjectRole;
+}
+
+export interface AdminProject {
+  projectId: number;
+  name: string;
+  description: string | null;
+  createdAt: string;
+  createdByEmail: string;
+  members: AdminProjectMember[];
+  totalTokens: number;
+}
+
 export interface Project {
   projectId: number;
   name: string;

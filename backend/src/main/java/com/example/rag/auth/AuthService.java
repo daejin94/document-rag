@@ -35,10 +35,13 @@ public class AuthService {
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."));
+        if (user.isDeleted()) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.");
+        }
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.");
         }
-        String accessToken = jwtService.createAccessToken(user.getId(), user.getEmail());
+        String accessToken = jwtService.createAccessToken(user.getId(), user.getEmail(), user.getRole());
         return new LoginResponse(accessToken, accessToken);
     }
 }

@@ -1,5 +1,16 @@
 # 작업 완료
 
+## 관리자(Super Admin) 페이지 추가 (2026-06-23)
+
+- 시작일: 2026-06-23
+- 완료일: 2026-06-23
+- 목적: SUPER_ADMIN 글로벌 role을 도입해 해당 유저 로그인 시 RAG 워크스페이스 대신 관리자 페이지로 진입. 일별 토큰 사용량 조회, 유저 관리(사용량·정보·삭제), 전체 프로젝트 관리 제공.
+- 현재 상태: 완료. 백엔드 main/test 컴파일·프론트 빌드 통과. 로컬 DB로 기동해 전 흐름 검증 완료.
+  - 백엔드: `app_users`에 `role`/`deleted_at` 추가(V7), `UserRole`(USER/SUPER_ADMIN) enum. JWT에 `role` claim 추가, 삭제 유저 로그인 차단. `SUPER_ADMIN_EMAIL` 환경변수 계정을 기동 시 자동 승격(`SuperAdminInitializer`). `admin` 패키지: `AdminController`(`/api/admin/**`, 핸들러마다 `requireSuperAdmin` DB 검증) + `AdminService` + `AdminUsageRepository`(KST 기준 일별 그룹핑 raw SQL). 유저 삭제는 소프트 삭제(자기 자신 차단).
+  - 프론트: 로그인 후 JWT role 디코드해 `SUPER_ADMIN`이면 `AdminApp` 렌더. `components/admin/`(AdminApp 탭 네비, UsageDashboard, UserManagement, ProjectManagement, 공용 UsageView). 새 UI 라이브러리 없이 표+CSS 막대로 시각화. api/types/스타일 추가.
+  - 검증: 마이그레이션 적용 → s@admin.me 가입 → 재기동 자동 승격(로그 확인) → 로그인 JWT role=SUPER_ADMIN → /api/admin/{users,usage/daily,projects} 200 → 일반 유저·승격 전 토큰 403 → 자기 삭제 400 → 소프트 삭제 후 로그인 401·목록 제외 → 일별/유저별/프로젝트별 집계 합산(KST) 정상. 테스트용 token_usages 행은 정리 완료.
+- 관련 파일: backend `user/{User,UserRole,UserRepository}`, `auth/{JwtService,AuthService}`, `admin/*`(신규), `db/migration/V7__add_user_role_and_soft_delete.sql`, `application.yml`; frontend `App.tsx`, `api.ts`, `types.ts`, `styles.css`, `components/admin/*`(신규); `.env.example`.
+
 ## 워크스페이스 UI 다듬기 및 커스텀 드롭다운 (2026-06-22)
 
 - 시작일: 2026-06-22

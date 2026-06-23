@@ -13,6 +13,7 @@ import {
   fetchSessions,
   queryDocuments,
 } from './api';
+import { AdminApp } from './components/admin/AdminApp';
 import { AuthScreen } from './components/AuthScreen';
 import { MemberManagement } from './components/MemberManagement';
 import { Modal } from './components/Modal';
@@ -33,19 +34,26 @@ const tokenKey = 'document-rag-token';
 const typewriterDelayMs = 14;
 type AnswerStatus = 'idle' | 'waiting' | 'typing';
 
-function getEmailFromToken(token: string) {
+function decodeToken(token: string): { email?: string; role?: string } {
   try {
     const payload = token.split('.')[1];
     if (!payload) {
-      return '';
+      return {};
     }
     const normalizedPayload = payload.replace(/-/g, '+').replace(/_/g, '/');
     const paddedPayload = normalizedPayload.padEnd(Math.ceil(normalizedPayload.length / 4) * 4, '=');
-    const decoded = JSON.parse(window.atob(paddedPayload)) as { email?: string };
-    return decoded.email ?? '';
+    return JSON.parse(window.atob(paddedPayload)) as { email?: string; role?: string };
   } catch {
-    return '';
+    return {};
   }
+}
+
+function getEmailFromToken(token: string) {
+  return decodeToken(token).email ?? '';
+}
+
+function getRoleFromToken(token: string) {
+  return decodeToken(token).role ?? 'USER';
 }
 
 export function App() {
@@ -56,14 +64,20 @@ export function App() {
     setToken(accessToken);
   }
 
+  function handleLogout() {
+    localStorage.removeItem(tokenKey);
+    setToken('');
+  }
+
   if (!token) {
     return <AuthScreen onAuthenticated={handleAuthenticated} />;
   }
 
-  return <Workspace token={token} onLogout={() => {
-    localStorage.removeItem(tokenKey);
-    setToken('');
-  }} />;
+  if (getRoleFromToken(token) === 'SUPER_ADMIN') {
+    return <AdminApp token={token} onLogout={handleLogout} />;
+  }
+
+  return <Workspace token={token} onLogout={handleLogout} />;
 }
 
 function Workspace({ token, onLogout }: { token: string; onLogout: () => void }) {

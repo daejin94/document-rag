@@ -2523,3 +2523,338 @@ h1 {
     overflow-y: auto;
   }
 }
+
+/* ===== 관리자(Super Admin) 콘솔 ===== */
+.admin-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--parchment);
+  color: var(--ink);
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px clamp(20px, 4vw, 48px);
+  background: var(--canvas);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-brand-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.admin-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(0, 102, 204, 0.12);
+  color: var(--action-blue);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 clamp(20px, 4vw, 48px);
+  background: var(--canvas);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.admin-tab {
+  position: relative;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 15px;
+  font-weight: 500;
+  padding: 14px 16px;
+  cursor: pointer;
+}
+
+.admin-tab.is-active {
+  color: var(--action-blue);
+}
+
+.admin-tab.is-active::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: -1px;
+  height: 2px;
+  background: var(--action-blue);
+  border-radius: 2px;
+}
+
+.admin-content {
+  flex: 1;
+  padding: clamp(20px, 4vw, 48px);
+  overflow-y: auto;
+}
+
+.admin-panel {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.admin-panel-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.admin-panel-head h2 {
+  margin: 0 0 4px;
+  font-size: 22px;
+}
+
+.admin-muted {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.usage-range {
+  display: flex;
+  gap: 12px;
+}
+
+.usage-range label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.usage-range input {
+  height: 36px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: var(--canvas);
+  color: var(--ink);
+}
+
+.usage-summary {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.usage-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+  padding: 16px 20px;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+}
+
+.usage-card-label {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.usage-card-value {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 11px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--divider-soft);
+}
+
+.admin-table thead th {
+  background: var(--pearl);
+  color: var(--ink-soft);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.admin-table tbody tr {
+  cursor: default;
+}
+
+.admin-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-table .action-col {
+  text-align: right;
+  width: 1%;
+  white-space: nowrap;
+}
+
+.usage-table .bar-col {
+  width: 28%;
+}
+
+.usage-bar {
+  display: block;
+  height: 10px;
+  min-width: 2px;
+  border-radius: 999px;
+  background: var(--action-blue);
+  opacity: 0.85;
+}
+
+.admin-table tbody tr.is-selected {
+  background: rgba(0, 102, 204, 0.06);
+}
+
+.admin-table tbody tr[onclick],
+.user-management .admin-table tbody tr,
+.admin-panel .admin-table tbody tr:hover {
+  background: rgba(0, 102, 204, 0.04);
+}
+
+.admin-table .ghost-button.danger-button {
+  height: 32px;
+  padding: 0 14px;
+  background: transparent;
+  border-color: #d70015;
+  color: #d70015;
+}
+
+.admin-table .ghost-button.danger-button:disabled {
+  border-color: var(--hairline);
+  color: var(--ink-soft);
+}
+
+.admin-detail {
+  margin-top: 8px;
+  padding: 20px;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-detail h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.admin-project-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-project-item {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.admin-project-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.admin-project-title strong {
+  font-size: 16px;
+}
+
+.admin-project-meta {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.admin-project-body {
+  padding: 0 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-top: 1px solid var(--divider-soft);
+}
+
+.admin-project-body h4 {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+
+.admin-project-info {
+  display: flex;
+  gap: 32px;
+  margin: 14px 0 0;
+}
+
+.admin-project-info dt {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-bottom: 2px;
+}
+
+.admin-project-info dd {
+  margin: 0;
+  font-size: 14px;
+}
+
+.usage-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
