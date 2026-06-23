@@ -150,7 +150,9 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
   }
 
   useEffect(() => {
+    // 마운트 시 1회만 초기 데이터를 로드한다 (refresh는 매 렌더마다 재생성되므로 deps에 넣지 않는다)
     void refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function selectProject(projectId: number) {
