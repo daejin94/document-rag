@@ -1,5 +1,18 @@
 # 작업 완료
 
+## 구글 OAuth 2.0 로그인 (2026-06-24)
+
+- 시작일: 2026-06-24
+- 완료일: 2026-06-24
+- 목적: 기존 JWT 인증에 구글 OAuth 2.0(백엔드 주도 Authorization Code) 로그인 추가
+- 현재 상태: 완료. 백엔드 컴파일·신규 단위 테스트, 프론트 빌드 통과. 실제 구글 라운드트립은 자격증명 등록 후 수동 검증 필요.
+  - 백엔드: `spring-boot-starter-oauth2-client` 추가. `User`에 `authProvider`/`providerId` + `googleUser(...)` 팩토리, password nullable(V9 마이그레이션). `OAuthService.loginOrRegisterGoogle`(이메일 기준 연동, 신규는 PENDING). 쿠키 기반 `HttpCookieOAuth2AuthorizationRequestRepository`(stateless 유지). `OAuth2LoginSuccessHandler`(승인 시 JWT 발급→`?token`, 그 외 `?oauth_error`), `OAuth2LoginFailureHandler`. `SecurityConfig`에 조건부 `oauth2Login`(자격증명 미설정 시 미활성) + `/api` 베이스 URI. `AuthService.login`에 소셜 계정(비밀번호 없음) 가드. `AuthController`에 `GET /api/auth/oauth-providers`(활성 제공자 조회) 추가.
+  - 프론트: `AuthScreen`에 "구글로 로그인" 버튼(인라인 G 아이콘) — `oauth-providers`가 google=true일 때만 노출. OAuth 피드백 표시. `App.tsx`가 콜백의 `?token`/`?oauth_error` 처리(저장 후 주소 정리).
+  - 결정: stateless 유지를 위해 세션 대신 쿠키 repo. OAuth 엔드포인트 `/api` 하위로 이동해 기존 프록시 재사용. 구글 신규 가입도 기존 관리자 승인 흐름 유지.
+  - 부팅 이슈 해결: `application.yml`에 `spring.security.oauth2.client.registration.google` 키가 있으면 client-id가 비어도 부팅 실패(`ClientsConfiguredCondition`이 키 존재만 검사). → yml 블록 제거하고 구글 설정은 **환경변수로만** 주입(표준 `SPRING_SECURITY_OAUTH2_...` 이름). 자격증명 없이 정상 부팅됨을 `bootRun`으로 확인.
+- 사용자 수동 작업: Google Cloud Console에서 OAuth 클라이언트 생성, 승인된 리디렉션 URI에 `...GOOGLE_REDIRECT_URI` 등록, `.env`에 `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID`/`...CLIENT_SECRET` 입력.
+- 관련 파일: backend `auth/oauth/*`, `auth/{SecurityConfig,AuthService}`, `user/{User,AuthProvider}`, `db/migration/V9__add_user_auth_provider.sql`, `application.yml`; frontend `components/AuthScreen.tsx`, `App.tsx`, `styles.css`; `.env.example`; 테스트 `auth/oauth/OAuthServiceTest`, `auth/AuthServiceTest`.
+
 ## 회원 가입 승인 기능 (2026-06-23)
 
 - 시작일: 2026-06-23

@@ -13,6 +13,8 @@ PostgreSQL + pgvector 기준이다. 스키마 변경은 **JPA entity만 바꾸�
 | V5 | `V5__add_project_deletions.sql` | `project_deletions` 추가(프로젝트 soft delete 감사) |
 | V6 | `V6__add_token_usages.sql` | `token_usages` 추가(토큰 사용량 추적) |
 | V7 | `V7__add_user_role_and_soft_delete.sql` | `app_users.role`, `app_users.deleted_at` 추가 |
+| V8 | `V8__add_user_status.sql` | `app_users.status` 추가(가입 승인 상태, 기존 사용자 `APPROVED` 백필) |
+| V9 | `V9__add_user_auth_provider.sql` | `app_users.auth_provider`/`provider_id` 추가, `password` NULL 허용(구글 OAuth 계정) |
 
 ## ER 개요
 
@@ -30,20 +32,23 @@ projects  1──1 project_deletions
 
 ### app_users
 
-사용자 계정. 전역 역할과 soft delete를 가진다.
+사용자 계정. 전역 역할, 가입 승인 상태, 인증 수단, soft delete를 가진다.
 
 | 컬럼 | 타입 | 비고 |
 |---|---|---|
 | `id` | BIGSERIAL | PK |
 | `email` | VARCHAR(255) | NOT NULL, UNIQUE |
-| `password` | VARCHAR(255) | NOT NULL, BCrypt 해시 |
+| `password` | VARCHAR(255) | NULL 허용, BCrypt 해시 (구글 OAuth 전용 계정은 비밀번호 없음) |
 | `name` | VARCHAR(100) | NOT NULL |
 | `role` | VARCHAR(30) | NOT NULL, DEFAULT `'USER'` (`USER` / `SUPER_ADMIN`) |
+| `status` | VARCHAR(20) | NOT NULL, DEFAULT `'APPROVED'`(신규 가입은 앱에서 `PENDING`) (`PENDING` / `APPROVED` / `REJECTED`) |
+| `auth_provider` | VARCHAR(20) | NOT NULL, DEFAULT `'LOCAL'` (`LOCAL` / `GOOGLE`) |
+| `provider_id` | VARCHAR(255) | OAuth 제공자의 사용자 식별자(구글 `sub`), LOCAL 계정은 NULL |
 | `deleted_at` | TIMESTAMPTZ | soft delete 시각(NULL이면 활성) |
 | `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
 | `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
 
-인덱스: `idx_app_users_role`, `idx_app_users_deleted_at`
+인덱스: `idx_app_users_role`, `idx_app_users_deleted_at`, `idx_app_users_status`, `idx_app_users_provider`
 
 ### projects
 

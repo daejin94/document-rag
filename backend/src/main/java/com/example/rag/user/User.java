@@ -24,11 +24,18 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
+    @Column
     private String password;
 
     @Column(nullable = false)
     private String name;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider", nullable = false)
+    private AuthProvider authProvider = AuthProvider.LOCAL;
+
+    @Column(name = "provider_id")
+    private String providerId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -54,6 +61,19 @@ public class User {
         this.email = email;
         this.password = password;
         this.name = name;
+    }
+
+    /**
+     * 구글 OAuth로 처음 로그인한 사용자를 위한 계정. 비밀번호는 없고, 기존 가입 흐름과 동일하게
+     * 승인 대기(PENDING) 상태로 생성된다.
+     */
+    public static User googleUser(String email, String name, String providerId) {
+        User user = new User();
+        user.email = email;
+        user.name = name;
+        user.authProvider = AuthProvider.GOOGLE;
+        user.providerId = providerId;
+        return user;
     }
 
     @PrePersist
@@ -88,6 +108,10 @@ public class User {
         return deletedAt != null;
     }
 
+    public boolean hasPassword() {
+        return password != null;
+    }
+
     public boolean isSuperAdmin() {
         return role == UserRole.SUPER_ADMIN;
     }
@@ -118,6 +142,14 @@ public class User {
 
     public UserRole getRole() {
         return role;
+    }
+
+    public AuthProvider getAuthProvider() {
+        return authProvider;
+    }
+
+    public String getProviderId() {
+        return providerId;
     }
 
     public UserStatus getStatus() {

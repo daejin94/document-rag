@@ -16,6 +16,9 @@ spring:
     multipart:
       max-file-size: 20MB
       max-request-size: 20MB
+  # 구글 OAuth(spring.security.oauth2.client.registration.google.*) 설정은 application.yml에 두지 않는다.
+  # registration 키가 하나라도 존재하면(client-id가 비어 있어도) Spring이 OAuth2ClientProperties를
+  # 검증하다 부팅이 실패하기 때문이다. 자격증명은 환경변수로만 주입한다(.env.example 참고).
 
 server:
   error:
@@ -27,6 +30,9 @@ app:
     access-token-minutes: 120
   admin:
     super-admin-email: ${SUPER_ADMIN_EMAIL:}
+  oauth:
+    # OAuth 로그인 완료 후 사용자를 돌려보낼 프론트엔드 주소
+    frontend-url: ${OAUTH_FRONTEND_URL:http://localhost:5173/}
   storage:
     root: ${FILE_STORAGE_ROOT:./uploads}
   openai:

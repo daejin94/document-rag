@@ -64,6 +64,11 @@ export function signup(email: string, password: string, name: string) {
   });
 }
 
+// 활성화된 소셜 로그인 제공자 조회(자격증명 미설정 시 google=false). 인증 불필요.
+export function fetchOAuthProviders() {
+  return request<{ google: boolean }>('/api/auth/oauth-providers');
+}
+
 export function fetchProjects(token: string) {
   return request<Project[]>('/api/projects', {}, token);
 }

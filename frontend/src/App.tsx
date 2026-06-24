@@ -15,7 +15,7 @@ import {
   setUnauthorizedHandler,
 } from './api';
 import { AdminApp } from './components/admin/AdminApp';
-import { AuthScreen } from './components/AuthScreen';
+import { AuthScreen, type OAuthFeedback } from './components/AuthScreen';
 import { MemberManagement } from './components/MemberManagement';
 import { Modal } from './components/Modal';
 import { UploadForm } from './components/UploadForm';
@@ -57,9 +57,46 @@ function getRoleFromToken(token: string) {
   return decodeToken(token).role ?? 'USER';
 }
 
+// 백엔드 OAuth success/failure 핸들러가 ?oauth_error=... 로 돌려보내는 코드별 안내 메시지
+function oauthErrorFeedback(code: string): OAuthFeedback {
+  switch (code) {
+    case 'signup':
+      // 이번 구글 로그인에서 계정이 새로 생성된 경우
+      return { type: 'notice', message: '가입 신청이 완료되었습니다. 관리자 승인 후 로그인할 수 있습니다.' };
+    case 'pending':
+      // 이미 가입돼 승인 대기 중인 계정으로 다시 로그인한 경우
+      return { type: 'notice', message: '가입 승인 대기 중입니다. 관리자 승인 후 로그인할 수 있습니다.' };
+    case 'rejected':
+      return { type: 'error', message: '가입이 거절된 계정입니다. 관리자에게 문의해주세요.' };
+    case 'disabled':
+      return { type: 'error', message: '비활성화된 계정입니다. 관리자에게 문의해주세요.' };
+    default:
+      return { type: 'error', message: '구글 로그인에 실패했습니다. 다시 시도해주세요.' };
+  }
+}
+
 export function App() {
   const [token, setToken] = useState(() => localStorage.getItem(tokenKey) || '');
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [oauthFeedback, setOauthFeedback] = useState<OAuthFeedback | null>(null);
+
+  useEffect(() => {
+    // 구글 OAuth 콜백 처리: 성공 시 ?token=, 승인 대기/실패 시 ?oauth_error= 로 돌아온다.
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('token');
+    const errorCode = params.get('oauth_error');
+    if (urlToken) {
+      localStorage.setItem(tokenKey, urlToken);
+      setSessionExpired(false);
+      setToken(urlToken);
+    } else if (errorCode) {
+      setOauthFeedback(oauthErrorFeedback(errorCode));
+    }
+    if (urlToken || errorCode) {
+      // 토큰/에러 파라미터가 주소창에 남지 않도록 정리한다.
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     // 인증된 요청이 401을 받으면(세션 만료 등) 토큰을 비우고 로그인 화면으로 돌려보낸다.
@@ -83,7 +120,13 @@ export function App() {
   }
 
   if (!token) {
-    return <AuthScreen onAuthenticated={handleAuthenticated} sessionExpired={sessionExpired} />;
+    return (
+      <AuthScreen
+        onAuthenticated={handleAuthenticated}
+        sessionExpired={sessionExpired}
+        oauthFeedback={oauthFeedback}
+      />
+    );
   }
 
   if (getRoleFromToken(token) === 'SUPER_ADMIN') {

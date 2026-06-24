@@ -8,8 +8,11 @@
 |---|---|---|
 | POST | `/api/auth/signup` | 회원가입 |
 | POST | `/api/auth/login` | 로그인 |
+| GET | `/api/auth/oauth-providers` | 활성화된 소셜 로그인 제공자 조회(`{ "google": boolean }`) |
+| GET | `/api/oauth2/authorization/google` | 구글 OAuth 로그인 시작(구글로 리다이렉트) |
+| GET | `/api/login/oauth2/code/google` | 구글 OAuth 콜백(백엔드 내부 처리) |
 
-`/api/auth/**` 경로는 인증 없이 접근할 수 있다. 그 외 API는 JWT 인증이 필요하다.
+`/api/auth/**`, `/api/oauth2/**`, `/api/login/oauth2/**` 경로는 인증 없이 접근할 수 있다. 그 외 API는 JWT 인증이 필요하다.
 
 ## 회원가입
 
@@ -47,6 +50,32 @@
 4. `accessToken`, `refreshToken`을 반환한다.
 
 현재 MVP에서는 `refreshToken`이 `accessToken`과 동일하다.
+
+## 구글 OAuth 로그인
+
+백엔드 주도(Authorization Code) 방식이다. 프론트는 "구글로 로그인" 버튼으로 브라우저 전체를 `/api/oauth2/authorization/google`로 이동시키고, 코드 교환과 사용자 식별, JWT 발급은 모두 백엔드가 처리한다.
+
+처리 흐름:
+
+1. 프론트가 `/api/oauth2/authorization/google`로 이동 → 백엔드가 구글로 리다이렉트한다.
+2. 구글 인증 후 `/api/login/oauth2/code/google` 콜백으로 돌아온다.
+3. 백엔드가 사용자 이메일을 기준으로 계정을 찾거나(없으면) 새로 만든다. 신규 구글 사용자는 일반 가입과 동일하게 `PENDING` 상태로 생성된다. 구글 전용 계정은 비밀번호(`password`)가 없다.
+4. 계정이 `APPROVED`이면 JWT를 발급해 프론트로 `?token=...`과 함께 리다이렉트한다. 그 외에는 `?oauth_error=...`로 리다이렉트한다. 코드: `signup`(이번에 새로 가입), `pending`(이미 가입돼 승인 대기 중), `rejected`(거절), `disabled`(비활성), `failed`/`no_email`(인증 실패).
+5. 프론트(`App.tsx`)는 콜백에서 `token`을 저장하고 주소창을 정리하며, `oauth_error`는 안내 메시지로 표시한다.
+
+설정(환경변수):
+
+| 변수 | 설명 |
+|---|---|
+| `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID` / `..._CLIENT_SECRET` | 구글 OAuth 클라이언트 자격증명. **설정하지 않으면 구글 로그인은 비활성화되고 앱은 정상 부팅된다.** |
+| `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_REDIRECT_URI` | 승인된 리디렉션 URI. Google Cloud Console에 동일하게 등록해야 한다(dev 예: `http://localhost:8080/api/login/oauth2/code/google`). |
+| `OAUTH_FRONTEND_URL` | 로그인 완료 후 돌아갈 프론트 주소(dev 기본값: `http://localhost:5173/`). |
+
+> 구글 설정은 Spring 표준 바인딩 이름의 **환경변수로만** 주입한다. `application.yml`에 `spring.security.oauth2.client.registration.google` 키를 두면 client-id가 비어 있어도 Spring이 `OAuth2ClientProperties`를 검증하다 부팅이 실패한다(`ClientsConfiguredCondition`이 registration 키 존재 여부만 보기 때문). 자세한 내용은 [troubleshooting.md](../troubleshooting.md) 참고.
+
+stateless 정책을 유지하기 위해 Authorization 요청은 HTTP 세션이 아니라 단기 쿠키(`HttpCookieOAuth2AuthorizationRequestRepository`)에 저장한다. OAuth 엔드포인트는 기존 `/api` 프록시를 재사용하도록 `/api` 하위로 옮겨져 있다(`SecurityConfig`에서 `authorizationEndpoint`/`redirectionEndpoint`의 baseUri를 `/api` 하위로 지정). 따라서 위 redirect-uri도 `/api/login/oauth2/code/google` 경로여야 한다.
+
+이메일/비밀번호 로그인으로 구글 전용 계정(비밀번호 없음)에 로그인하려 하면 "구글 로그인을 사용해주세요" 안내와 함께 거부한다.
 
 ## 전역 역할
 
