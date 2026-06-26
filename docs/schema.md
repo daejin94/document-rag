@@ -15,6 +15,8 @@ PostgreSQL + pgvector 기준이다. 스키마 변경은 **JPA entity만 바꾸�
 | V7 | `V7__add_user_role_and_soft_delete.sql` | `app_users.role`, `app_users.deleted_at` 추가 |
 | V8 | `V8__add_user_status.sql` | `app_users.status` 추가(가입 승인 상태, 기존 사용자 `APPROVED` 백필) |
 | V9 | `V9__add_user_auth_provider.sql` | `app_users.auth_provider`/`provider_id` 추가, `password` NULL 허용(구글 OAuth 계정) |
+| V10 | `V10__add_chat_integrations.sql` | 텔레그램 연동 초기: `chat_bindings`(V11에서 제거), `identity_links`, `telegram_link_codes`, `inbound_messages` 추가 |
+| V11 | `V11__bot_installations.sql` | `chat_bindings` 제거, `bot_installations` 추가, `inbound_messages.installation_id` 추가 + 멱등성을 (설치, 이벤트) 단위로 재정의 |
 
 ## ER 개요
 
@@ -26,6 +28,10 @@ app_users 1──* chat_sessions *──1 projects
 chat_sessions 1──* chat_messages 1──* answer_sources *──1 document_chunks
 app_users 1──* token_usages   (projects, chat_sessions 선택 참조)
 projects  1──1 project_deletions
+projects  1──* bot_installations
+app_users 1──* identity_links       (외부 플랫폼 사용자 ↔ 앱 계정)
+app_users 1──* telegram_link_codes
+bot_installations 1──* inbound_messages
 ```
 
 ## 테이블
@@ -193,8 +199,80 @@ OpenAI 호출별 토큰 사용량(V6). 집계 규칙은 [feat/admin.md](feat/adm
 
 인덱스: `idx_project_deletions_deleted_by_user_id`
 
+### bot_installations
+
+프로젝트에 등록된 봇. 봇이 받은 메시지는 이 설치가 가리키는 프로젝트로 라우팅된다(봇 = 프로젝트). (V11)
+
+| 컬럼 | 타입 | 비고 |
+|---|---|---|
+| `id` | BIGSERIAL | PK |
+| `platform` | VARCHAR(20) | NOT NULL (`TELEGRAM`) |
+| `project_id` | BIGINT | NOT NULL, FK → projects(id) ON DELETE CASCADE |
+| `bot_token` | VARCHAR(255) | NOT NULL (현재 평문 저장) |
+| `bot_username` | VARCHAR(100) | nullable (`getMe`로 조회) |
+| `secret_token` | VARCHAR(100) | NOT NULL (webhook 헤더 검증용, 설치마다 무작위) |
+| `created_by_user_id` | BIGINT | NOT NULL, FK → app_users(id) ON DELETE CASCADE |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
+
+제약: `UNIQUE(platform, bot_token)`
+인덱스: `idx_bot_installations_project_id`
+
+### identity_links
+
+외부 플랫폼 사용자 ↔ 앱 계정 매핑. 매핑된 계정의 권한으로 RAG 질의를 수행한다. (V10)
+
+| 컬럼 | 타입 | 비고 |
+|---|---|---|
+| `id` | BIGSERIAL | PK |
+| `platform` | VARCHAR(20) | NOT NULL |
+| `external_user_id` | VARCHAR(100) | NOT NULL (텔레그램 user id 등) |
+| `user_id` | BIGINT | NOT NULL, FK → app_users(id) ON DELETE CASCADE |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
+
+제약: `UNIQUE(platform, external_user_id)`
+인덱스: `idx_identity_links_user_id`
+
+### telegram_link_codes
+
+텔레그램 계정 연결용 일회용 코드. 앱에서 발급하고 채팅방의 `/link <code>`로 소비한다. (V10)
+
+| 컬럼 | 타입 | 비고 |
+|---|---|---|
+| `id` | BIGSERIAL | PK |
+| `code` | VARCHAR(64) | NOT NULL, UNIQUE |
+| `user_id` | BIGINT | NOT NULL, FK → app_users(id) ON DELETE CASCADE |
+| `expires_at` | TIMESTAMPTZ | NOT NULL (발급 후 10분) |
+| `used_at` | TIMESTAMPTZ | nullable (사용 시각) |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
+
+인덱스: `idx_telegram_link_codes_user_id`
+
+### inbound_messages
+
+외부 플랫폼 수신 질문의 비동기 작업 큐이자 멱등성 키 저장소. (V10, `installation_id`는 V11)
+
+| 컬럼 | 타입 | 비고 |
+|---|---|---|
+| `id` | BIGSERIAL | PK |
+| `platform` | VARCHAR(20) | NOT NULL |
+| `installation_id` | BIGINT | nullable, 메시지를 받은 봇 설치 (V11) |
+| `provider_event_id` | VARCHAR(200) | NOT NULL (텔레그램 update_id) |
+| `channel_id` | VARCHAR(100) | NOT NULL (텔레그램 chat_id) |
+| `external_user_id` | VARCHAR(100) | nullable |
+| `question` | TEXT | NOT NULL |
+| `reply_ref` | VARCHAR(100) | nullable (답글 대상 message_id) |
+| `status` | VARCHAR(20) | NOT NULL (`PENDING`/`PROCESSING`/`DONE`/`FAILED`/`SKIPPED`) |
+| `chat_session_id` | BIGINT | nullable (생성된 ChatSession) |
+| `error` | TEXT | nullable |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
+| `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
+
+제약: `UNIQUE(installation_id, provider_event_id)` (중복 수신 차단, V11)
+인덱스: `idx_inbound_messages_conversation` (installation_id, external_user_id, created_at DESC)
+
 ## 참고
 
 - embedding 차원(1536)은 `text-embedding-3-small`에 맞춰져 있다. embedding 모델을 바꾸면 컬럼 차원 변경과 재-embedding이 필요하다.
 - soft delete: `app_users`(`deleted_at`), `projects`(`project_deletions`). 문서·세션·메시지는 hard delete이며 FK `ON DELETE CASCADE`로 연관 데이터를 정리한다.
+- 텔레그램 봇 토큰(`bot_installations.bot_token`)은 현재 평문으로 저장한다. 운영 시 암호화는 후속 과제다. 연동 흐름은 [feat/telegram-bot.md](feat/telegram-bot.md)를 참고한다.
 - 벡터 저장/검색의 자세한 내용은 [feat/rag-flow.md](feat/rag-flow.md), 루트 `CLAUDE.md`를 참고한다.
