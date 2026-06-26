@@ -5,13 +5,17 @@ import {
   deleteDocument,
   deleteProject,
   deleteProjectMember,
+  deleteTelegramBot,
   fetchDocumentDetail,
   fetchDocuments,
   fetchMessages,
   fetchProjectMembers,
   fetchProjects,
   fetchSessions,
+  fetchTelegramBots,
+  issueTelegramLinkCode,
   queryDocuments,
+  registerTelegramBot,
   setUnauthorizedHandler,
 } from './api';
 import { AdminApp } from './components/admin/AdminApp';
@@ -540,6 +544,10 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
         onSelectProject={selectProject}
         onStartNewSession={startNewSession}
         onLogout={onLogout}
+        onIssueTelegramCode={() => issueTelegramLinkCode(token)}
+        onFetchBots={(projectId) => fetchTelegramBots(token, projectId)}
+        onRegisterBot={(projectId, botToken) => registerTelegramBot(token, projectId, botToken)}
+        onDeleteBot={(projectId, installationId) => deleteTelegramBot(token, projectId, installationId)}
         userEmail={userEmail}
       />
 

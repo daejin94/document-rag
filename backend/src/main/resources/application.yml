@@ -45,3 +45,11 @@ app:
     chunk-overlap: ${RAG_CHUNK_OVERLAP:150}
     top-k: ${RAG_TOP_K:5}
     similarity-threshold: ${RAG_SIMILARITY_THRESHOLD:0.70}
+  integration:
+    telegram:
+      enabled: ${TELEGRAM_ENABLED:false}
+      # off | polling | webhook (등록된 모든 봇에 공통 적용)
+      mode: ${TELEGRAM_MODE:off}
+      # webhook 모드에서 봇 webhook URL을 만들 공개 베이스(예: https://your-host)
+      public-base-url: ${TELEGRAM_PUBLIC_BASE_URL:}
+      api-base-url: ${TELEGRAM_API_BASE_URL:https://api.telegram.org}

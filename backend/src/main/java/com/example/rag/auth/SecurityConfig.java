@@ -34,6 +34,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/oauth2/**", "/api/login/oauth2/**").permitAll()
+                        // 외부 플랫폼 webhook은 JWT가 없으므로 permitAll. 대신 플랫폼 서명/secret token으로 검증한다.
+                        .requestMatchers("/api/integrations/*/webhook/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

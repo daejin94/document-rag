@@ -12,6 +12,8 @@ import type {
   ProjectRole,
   QueryResponse,
   SignupResponse,
+  TelegramBot,
+  TelegramLinkCode,
 } from './types';
 
 const API_BASE = '';
@@ -131,6 +133,27 @@ export function fetchSessions(token: string, projectId: number) {
 
 export function fetchMessages(token: string, projectId: number, sessionId: number) {
   return request<ChatMessage[]>(`/api/projects/${projectId}/chat/sessions/${sessionId}/messages`, {}, token);
+}
+
+// 텔레그램 계정 연결용 일회용 코드 발급. 채팅방에서 /link <code> 로 사용한다.
+export function issueTelegramLinkCode(token: string) {
+  return request<TelegramLinkCode>('/api/integrations/telegram/link-codes', { method: 'POST' }, token);
+}
+
+// 프로젝트별 텔레그램 봇 등록 (프로젝트 ADMIN). 봇 = 프로젝트.
+export function fetchTelegramBots(token: string, projectId: number) {
+  return request<TelegramBot[]>(`/api/projects/${projectId}/integrations/telegram/bots`, {}, token);
+}
+
+export function registerTelegramBot(token: string, projectId: number, botToken: string) {
+  return request<TelegramBot>(`/api/projects/${projectId}/integrations/telegram/bots`, {
+    method: 'POST',
+    body: JSON.stringify({ botToken }),
+  }, token);
+}
+
+export function deleteTelegramBot(token: string, projectId: number, installationId: number) {
+  return request<void>(`/api/projects/${projectId}/integrations/telegram/bots/${installationId}`, { method: 'DELETE' }, token);
 }
 
 // --- 관리자(Super Admin) API ---
