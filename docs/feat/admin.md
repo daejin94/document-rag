@@ -74,6 +74,7 @@ OpenAI 호출마다 `token_usages` 테이블에 사용량을 기록한다. 기�
 | `CHAT` | 질문 답변 생성(Chat 모델) | promptTokens + completionTokens |
 | `EMBEDDING_QUERY` | 질문 embedding(검색용) | promptTokens(=총 토큰) |
 | `EMBEDDING_UPLOAD` | 문서 업로드 시 chunk embedding | promptTokens(=총 토큰) |
+| `OCR_UPLOAD` | 이미지/스캔 PDF 업로드 시 비전 모델 OCR | promptTokens + completionTokens |
 
 각 행은 `user_id`, `project_id`(nullable), `session_id`(nullable), `model`, `prompt_tokens`, `completion_tokens`, `total_tokens`, `created_at`을 가진다.
 
@@ -82,7 +83,7 @@ OpenAI 호출마다 `token_usages` 테이블에 사용량을 기록한다. 기�
 관리자 일자별 사용량(`DailyUsageResponse`)은 다음과 같이 나눈다.
 
 - `chatPromptTokens`, `chatCompletionTokens` — `usage_type = 'CHAT'`인 행의 prompt/completion 합.
-- `embeddingTokens` — `usage_type <> 'CHAT'`(즉 `EMBEDDING_QUERY` + `EMBEDDING_UPLOAD`)인 행의 `total_tokens` 합.
+- `embeddingTokens` — `usage_type <> 'CHAT'`(즉 `EMBEDDING_QUERY` + `EMBEDDING_UPLOAD` + `OCR_UPLOAD`)인 행의 `total_tokens` 합. OCR 토큰은 별도 항목 없이 이 합에 포함된다(전체 `totalTokens`는 정확). 별도 분리가 필요하면 `DailyUsageResponse`에 OCR 컬럼을 추가하는 후속 작업이 필요하다.
 - `totalTokens` — 위 전체의 합.
 
 집계의 날짜 그룹화는 **KST(Asia/Seoul)** 기준이다.

@@ -7,6 +7,8 @@ public record RagProperties(
         int chunkSize,
         int chunkOverlap,
         int topK,
-        double similarityThreshold
+        double similarityThreshold,
+        int ocrMaxPages,
+        int ocrDpi
 ) {
 }

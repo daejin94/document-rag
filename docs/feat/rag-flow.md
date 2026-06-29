@@ -25,7 +25,7 @@
 2. 서버는 `requireMember`로 프로젝트 권한을 확인하고, 프로젝트에 속한 문서를 생성한다.
 3. 파일을 로컬 저장소에 저장한다.
 4. 문서 상태를 `PROCESSING`으로 변경한다.
-5. TXT/Markdown은 UTF-8로 먼저 읽고 실패하면 MS949로 다시 읽으며, PDF는 PDFBox로 텍스트를 추출한다.
+5. TXT/Markdown은 UTF-8로 먼저 읽고 실패하면 MS949로 다시 읽는다. PDF는 PDFBox로 텍스트를 추출하되 텍스트가 부족하면 페이지를 이미지로 렌더링해 OCR로 추출하고, 이미지 파일(PNG/JPG)은 OpenAI 비전 OCR로 추출한다.
 6. 텍스트를 chunk로 분할한다.
 7. 각 chunk를 embedding으로 변환한다.
 8. `document_chunks`에 chunk와 embedding을 저장한다.

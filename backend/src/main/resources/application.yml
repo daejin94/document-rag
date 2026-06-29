@@ -40,11 +40,16 @@ app:
     base-url: ${OPENAI_BASE_URL:https://api.openai.com}
     chat-model: ${OPENAI_CHAT_MODEL:gpt-4o-mini}
     embedding-model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+    # 이미지/스캔 PDF OCR에 쓰는 비전 모델 (image_url 입력 지원 모델이어야 함)
+    ocr-model: ${OPENAI_OCR_MODEL:gpt-4o-mini}
   rag:
     chunk-size: ${RAG_CHUNK_SIZE:800}
     chunk-overlap: ${RAG_CHUNK_OVERLAP:150}
     top-k: ${RAG_TOP_K:5}
     similarity-threshold: ${RAG_SIMILARITY_THRESHOLD:0.70}
+    # 스캔 PDF OCR 시 처리할 최대 페이지 수(비용 상한)와 렌더링 DPI
+    ocr-max-pages: ${RAG_OCR_MAX_PAGES:20}
+    ocr-dpi: ${RAG_OCR_DPI:200}
   integration:
     telegram:
       enabled: ${TELEGRAM_ENABLED:false}

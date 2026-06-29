@@ -83,7 +83,7 @@ export function UploadForm({ token, projectId, onUploaded, onComplete }: UploadF
       <label>
         파일
         <input
-          accept=".txt,.md,.markdown,.pdf,text/plain,text/markdown,application/pdf"
+          accept=".txt,.md,.markdown,.pdf,.png,.jpg,.jpeg,text/plain,text/markdown,application/pdf,image/png,image/jpeg"
           disabled={busy}
           key={fileInputKey}
           onChange={(event) => {

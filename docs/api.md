@@ -497,7 +497,7 @@ Authorization: Bearer <ACCESS_TOKEN>
 ]
 ```
 
-`chatPromptTokens`/`chatCompletionTokens`는 `CHAT` 사용분, `embeddingTokens`는 `EMBEDDING_QUERY` + `EMBEDDING_UPLOAD` 사용분이다. 사용자별/프로젝트별 엔드포인트도 같은 형태를 반환한다.
+`chatPromptTokens`/`chatCompletionTokens`는 `CHAT` 사용분, `embeddingTokens`는 비-`CHAT` 사용분(`EMBEDDING_QUERY` + `EMBEDDING_UPLOAD` + `OCR_UPLOAD`)이다. 사용자별/프로젝트별 엔드포인트도 같은 형태를 반환한다.
 
 ### 사용자 목록
 

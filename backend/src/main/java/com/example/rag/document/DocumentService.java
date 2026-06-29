@@ -81,8 +81,8 @@ public class DocumentService {
         try {
             document.markProcessing();
             documentRepository.save(document);
-            String text = textExtractor.extract(storedPath, originalFileName);
-            List<String> chunks = documentChunker.split(text);
+            ExtractionResult extraction = textExtractor.extract(storedPath, originalFileName);
+            List<String> chunks = documentChunker.split(extraction.text());
             int embeddingTokens = 0;
             for (int i = 0; i < chunks.size(); i++) {
                 EmbedResult embedding = embeddingModelClient.embed(chunks.get(i));
@@ -96,6 +96,13 @@ public class DocumentService {
                     TokenUsageType.EMBEDDING_UPLOAD, embeddingModelClient.modelName(),
                     embeddingTokens, 0
             );
+            if (extraction.usedOcr()) {
+                tokenUsageRecorder.record(
+                        userId, projectId, null,
+                        TokenUsageType.OCR_UPLOAD, extraction.ocrModel(),
+                        extraction.ocrPromptTokens(), extraction.ocrCompletionTokens()
+                );
+            }
         } catch (RuntimeException ex) {
             document.markFailed(ex.getMessage());
             documentRepository.save(document);

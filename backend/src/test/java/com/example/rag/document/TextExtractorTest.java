@@ -1,6 +1,8 @@
 package com.example.rag.document;
 
 import com.example.rag.common.ApiException;
+import com.example.rag.llm.OcrModelClient;
+import com.example.rag.llm.OcrResult;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -20,7 +22,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class TextExtractorTest {
 
-    private final TextExtractor textExtractor = new TextExtractor();
+    private static final RagProperties RAG_PROPERTIES = new RagProperties(800, 150, 5, 0.7, 20, 200);
+
+    private final StubOcrModelClient ocrModelClient = new StubOcrModelClient();
+    private final TextExtractor textExtractor = new TextExtractor(ocrModelClient, RAG_PROPERTIES);
 
     @TempDir
     Path tempDir;
@@ -30,32 +35,87 @@ class TextExtractorTest {
         Path pdf = tempDir.resolve("sample.pdf");
         writePdf(pdf, "PDF text content");
 
-        String text = textExtractor.extract(pdf, "sample.pdf");
+        ExtractionResult result = textExtractor.extract(pdf, "sample.pdf");
 
-        assertThat(text).contains("PDF text content");
+        assertThat(result.text()).contains("PDF text content");
+        assertThat(result.usedOcr()).isFalse();
+        assertThat(ocrModelClient.calls).isZero();
     }
 
     @Test
-    void rejectsPdfWhenExtractedTextIsTooShortForPageCount() throws IOException {
+    void fallsBackToOcrWhenPdfTextIsTooShortForPageCount() throws IOException {
         Path pdf = tempDir.resolve("short-multipage.pdf");
         writePdf(pdf, "short", 5);
+        ocrModelClient.responseText = "OCR로 추출한 본문";
 
-        assertThatThrownBy(() -> textExtractor.extract(pdf, "short-multipage.pdf"))
+        ExtractionResult result = textExtractor.extract(pdf, "short-multipage.pdf");
+
+        assertThat(result.text()).contains("OCR로 추출한 본문");
+        assertThat(result.usedOcr()).isTrue();
+        assertThat(result.ocrModel()).isEqualTo("stub-ocr");
+        assertThat(ocrModelClient.calls).isEqualTo(5); // 페이지마다 1회
+    }
+
+    @Test
+    void fallsBackToOcrWhenPdfTextHasTooManyUnknownCharacters() throws IOException {
+        Path pdf = tempDir.resolve("broken.pdf");
+        writePdf(pdf, "valid text ".repeat(40) + "?".repeat(40));
+        ocrModelClient.responseText = "정상 추출 텍스트";
+
+        ExtractionResult result = textExtractor.extract(pdf, "broken.pdf");
+
+        assertThat(result.text()).contains("정상 추출 텍스트");
+        assertThat(result.usedOcr()).isTrue();
+    }
+
+    @Test
+    void failsWhenOcrAlsoReturnsNoTextFromPdf() throws IOException {
+        Path pdf = tempDir.resolve("blank-scan.pdf");
+        writePdf(pdf, "short", 5);
+        ocrModelClient.responseText = "";
+
+        assertThatThrownBy(() -> textExtractor.extract(pdf, "blank-scan.pdf"))
                 .isInstanceOfSatisfying(ApiException.class, ex -> {
                     assertThat(ex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
-                    assertThat(ex.getMessage()).contains("OCR 처리된");
+                    assertThat(ex.getMessage()).contains("OCR");
                 });
     }
 
     @Test
-    void rejectsPdfWhenExtractedTextHasTooManyUnknownCharacters() throws IOException {
-        Path pdf = tempDir.resolve("broken.pdf");
-        writePdf(pdf, "valid text ".repeat(40) + "?".repeat(40));
+    void extractsTextFromImageViaOcr() throws IOException {
+        Path image = tempDir.resolve("scan.png");
+        Files.write(image, new byte[]{1, 2, 3, 4});
+        ocrModelClient.responseText = "이미지에서 읽은 텍스트";
 
-        assertThatThrownBy(() -> textExtractor.extract(pdf, "broken.pdf"))
+        ExtractionResult result = textExtractor.extract(image, "scan.png");
+
+        assertThat(result.text()).isEqualTo("이미지에서 읽은 텍스트");
+        assertThat(result.usedOcr()).isTrue();
+        assertThat(ocrModelClient.lastMimeType).isEqualTo("image/png");
+        assertThat(ocrModelClient.calls).isEqualTo(1);
+    }
+
+    @Test
+    void usesJpegMimeTypeForJpgImage() throws IOException {
+        Path image = tempDir.resolve("scan.jpg");
+        Files.write(image, new byte[]{1, 2, 3, 4});
+        ocrModelClient.responseText = "jpg 텍스트";
+
+        textExtractor.extract(image, "scan.jpg");
+
+        assertThat(ocrModelClient.lastMimeType).isEqualTo("image/jpeg");
+    }
+
+    @Test
+    void failsWhenImageHasNoText() throws IOException {
+        Path image = tempDir.resolve("empty.png");
+        Files.write(image, new byte[]{1, 2, 3, 4});
+        ocrModelClient.responseText = "   ";
+
+        assertThatThrownBy(() -> textExtractor.extract(image, "empty.png"))
                 .isInstanceOfSatisfying(ApiException.class, ex -> {
                     assertThat(ex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
-                    assertThat(ex.getMessage()).contains("텍스트를 충분히 읽을 수 없는 PDF");
+                    assertThat(ex.getMessage()).contains("이미지에서 텍스트를 찾을 수 없습니다");
                 });
     }
 
@@ -64,9 +124,10 @@ class TextExtractorTest {
         Path textFile = tempDir.resolve("sample.txt");
         Files.writeString(textFile, "한글 문서", Charset.forName("MS949"));
 
-        String text = textExtractor.extract(textFile, "sample.txt");
+        ExtractionResult result = textExtractor.extract(textFile, "sample.txt");
 
-        assertThat(text).isEqualTo("한글 문서");
+        assertThat(result.text()).isEqualTo("한글 문서");
+        assertThat(result.usedOcr()).isFalse();
     }
 
     @Test
@@ -98,6 +159,24 @@ class TextExtractorTest {
                 }
             }
             document.save(path.toFile());
+        }
+    }
+
+    private static final class StubOcrModelClient implements OcrModelClient {
+        private String responseText = "ocr text";
+        private int calls;
+        private String lastMimeType;
+
+        @Override
+        public OcrResult recognize(byte[] imageBytes, String mimeType) {
+            calls++;
+            lastMimeType = mimeType;
+            return new OcrResult(responseText, 10, 5);
+        }
+
+        @Override
+        public String modelName() {
+            return "stub-ocr";
         }
     }
 }

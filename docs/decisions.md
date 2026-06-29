@@ -4,10 +4,12 @@
 
 ## 문서 형식
 
-- 업로드 가능한 문서 형식은 TXT, Markdown, PDF이다.
-- 지원 확장자는 `.txt`, `.md`, `.markdown`, `.pdf`이다.
-- PDF는 텍스트 추출 가능한 문서만 지원한다.
-- 스캔 이미지 기반 PDF나 암호화된 PDF는 처리 대상이 아니다.
+- 업로드 가능한 문서 형식은 TXT, Markdown, PDF, 이미지(PNG/JPG)이다.
+- 지원 확장자는 `.txt`, `.md`, `.markdown`, `.pdf`, `.png`, `.jpg`, `.jpeg`이다.
+- PDF는 텍스트 추출이 가능하면 그대로 사용하고, 텍스트가 부족한 스캔 이미지 PDF는 OpenAI 비전 모델 OCR로 fallback한다.
+- 이미지 파일은 OpenAI 비전 모델 OCR로 텍스트를 추출한다. OCR 모델은 `OPENAI_OCR_MODEL`로 지정하고, 스캔 PDF는 `RAG_OCR_MAX_PAGES`/`RAG_OCR_DPI`로 비용을 제한한다.
+- 암호화된 PDF는 처리 대상이 아니다.
+- OCR(이미지/스캔 PDF)은 비전 모델을 호출하므로 업로드가 동기적으로 느려지고 토큰 비용이 발생한다. 다중 페이지 OCR의 비동기 처리는 후속 과제로 남긴다.
 
 ## Embedding
 

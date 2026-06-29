@@ -7,6 +7,7 @@ public record OpenAiProperties(
         String apiKey,
         String baseUrl,
         String chatModel,
-        String embeddingModel
+        String embeddingModel,
+        String ocrModel
 ) {
 }
