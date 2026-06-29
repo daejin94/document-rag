@@ -1796,6 +1796,63 @@ h1 {
   font-size: 14px;
 }
 
+.telegram-guide {
+  border: 1px solid #303741;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0 14px;
+}
+
+.telegram-guide > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 12px 0;
+  color: var(--action-blue-on-dark);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.telegram-guide > summary::-webkit-details-marker {
+  display: none;
+}
+
+.telegram-guide > summary::before {
+  content: '▸';
+  margin-right: 8px;
+  font-size: 11px;
+}
+
+.telegram-guide[open] > summary::before {
+  content: '▾';
+}
+
+.telegram-guide-steps {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+  color: #b3becd;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.telegram-guide-steps code,
+.telegram-guide-tip code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+}
+
+.telegram-guide-tip {
+  margin: 0 0 12px;
+  padding-top: 10px;
+  border-top: 1px solid #2a2f38;
+  color: #8f9baa;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 .binding-form {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
