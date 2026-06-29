@@ -60,5 +60,12 @@ $topK = if ($env:RAG_TOP_K) { $env:RAG_TOP_K } else { '5' }
 $threshold = if ($env:RAG_SIMILARITY_THRESHOLD) { $env:RAG_SIMILARITY_THRESHOLD } else { '0.70' }
 Write-Host "Starting backend with RAG_TOP_K=$topK, RAG_SIMILARITY_THRESHOLD=$threshold"
 
-Set-Location $BackendDir
-& $GradlewBat bootRun
+# Push/Pop-Location: 스크립트 종료(정상·에러·Ctrl+C) 후 호출자의 작업 디렉터리를 원래대로 복원한다.
+# (Set-Location은 세션 전역이라 그냥 쓰면 종료 후에도 backend 폴더에 남는다.)
+Push-Location $BackendDir
+try {
+    & $GradlewBat bootRun
+}
+finally {
+    Pop-Location
+}
