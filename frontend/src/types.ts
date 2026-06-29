@@ -11,6 +11,18 @@ export interface SignupResponse {
   name: string;
 }
 
+export interface TelegramLinkCode {
+  code: string;
+  expiresAt: string;
+}
+
+export interface TelegramBot {
+  id: number;
+  botUsername: string;
+  maskedToken: string;
+  createdAt: string;
+}
+
 export type ProjectRole = 'ADMIN' | 'MEMBER';
 
 export type UserRole = 'USER' | 'SUPER_ADMIN';

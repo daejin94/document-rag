@@ -17,7 +17,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Modal } from './Modal';
 import { Dropdown } from './Dropdown';
-import type { ChatMessage, ChatSession, DocumentDetail, DocumentItem, Project, Source } from '../types';
+import type { ChatMessage, ChatSession, DocumentDetail, DocumentItem, Project, Source, TelegramBot, TelegramLinkCode } from '../types';
 
 interface WorkspaceMainProps {
   currentProject: Project | null;
@@ -42,6 +42,10 @@ interface WorkspaceMainProps {
   onSelectProject: (projectId: number) => void;
   onStartNewSession: () => void;
   onLogout: () => void;
+  onIssueTelegramCode: () => Promise<TelegramLinkCode>;
+  onFetchBots: (projectId: number) => Promise<TelegramBot[]>;
+  onRegisterBot: (projectId: number, botToken: string) => Promise<TelegramBot>;
+  onDeleteBot: (projectId: number, installationId: number) => Promise<void>;
   userEmail: string;
 }
 
@@ -68,12 +72,96 @@ export function WorkspaceMain({
   onSelectProject,
   onStartNewSession,
   onLogout,
+  onIssueTelegramCode,
+  onFetchBots,
+  onRegisterBot,
+  onDeleteBot,
   userEmail,
 }: WorkspaceMainProps) {
   const [isProfileMenuOpen, setProfileMenuOpen] = useState(false);
   const [isProjectsModalOpen, setProjectsModalOpen] = useState(false);
+  const [isTelegramModalOpen, setTelegramModalOpen] = useState(false);
+  const [telegramCode, setTelegramCode] = useState<TelegramLinkCode | null>(null);
+  const [telegramLoading, setTelegramLoading] = useState(false);
+  const [telegramError, setTelegramError] = useState('');
   const profileEmail = userEmail || '로그인 사용자';
   const profileName = userEmail ? userEmail.split('@')[0] : '사용자';
+
+  const [isBotModalOpen, setBotModalOpen] = useState(false);
+  const [bots, setBots] = useState<TelegramBot[]>([]);
+  const [botToken, setBotToken] = useState('');
+  const [botLoading, setBotLoading] = useState(false);
+  const [botError, setBotError] = useState('');
+
+  async function openTelegramModal() {
+    setProfileMenuOpen(false);
+    setTelegramModalOpen(true);
+    setTelegramCode(null);
+    setTelegramError('');
+    setTelegramLoading(true);
+    try {
+      setTelegramCode(await onIssueTelegramCode());
+    } catch (err) {
+      setTelegramError(err instanceof Error ? err.message : '코드 발급에 실패했습니다.');
+    } finally {
+      setTelegramLoading(false);
+    }
+  }
+
+  async function loadBots(projectId: number) {
+    setBotLoading(true);
+    setBotError('');
+    try {
+      setBots(await onFetchBots(projectId));
+    } catch (err) {
+      setBotError(err instanceof Error ? err.message : '봇 목록을 불러오지 못했습니다.');
+    } finally {
+      setBotLoading(false);
+    }
+  }
+
+  function openBotModal() {
+    if (!currentProjectId) {
+      return;
+    }
+    setBotToken('');
+    setBotError('');
+    setBots([]);
+    setBotModalOpen(true);
+    void loadBots(currentProjectId);
+  }
+
+  const submitBot: FormEventHandler<HTMLFormElement> = async (event) => {
+    event.preventDefault();
+    if (!currentProjectId || !botToken.trim()) {
+      return;
+    }
+    setBotLoading(true);
+    setBotError('');
+    try {
+      await onRegisterBot(currentProjectId, botToken.trim());
+      setBotToken('');
+      await loadBots(currentProjectId);
+    } catch (err) {
+      setBotError(err instanceof Error ? err.message : '봇 등록에 실패했습니다.');
+      setBotLoading(false);
+    }
+  };
+
+  async function removeBot(installationId: number) {
+    if (!currentProjectId) {
+      return;
+    }
+    setBotLoading(true);
+    setBotError('');
+    try {
+      await onDeleteBot(currentProjectId, installationId);
+      await loadBots(currentProjectId);
+    } catch (err) {
+      setBotError(err instanceof Error ? err.message : '봇 삭제에 실패했습니다.');
+      setBotLoading(false);
+    }
+  }
 
   return (
     <section className="main-panel">
@@ -145,6 +233,18 @@ export function WorkspaceMain({
             <Users size={16} />
             <span className="action-label">멤버 관리</span>
           </button>
+          {currentProject?.role === 'ADMIN' && (
+            <button
+              className="ghost-button action-button"
+              disabled={!currentProjectId}
+              onClick={openBotModal}
+              title="텔레그램 봇"
+              type="button"
+            >
+              <Bot size={16} />
+              <span className="action-label">텔레그램 봇</span>
+            </button>
+          )}
           <div className="profile-menu-wrap">
             <button
               aria-expanded={isProfileMenuOpen}
@@ -177,6 +277,14 @@ export function WorkspaceMain({
                     프로젝트 관리
                   </button>
                   <button
+                    className="profile-action"
+                    onClick={openTelegramModal}
+                    type="button"
+                  >
+                    <Bot size={16} />
+                    텔레그램 연결
+                  </button>
+                  <button
                     className="profile-action profile-logout"
                     onClick={onLogout}
                     type="button"
@@ -190,6 +298,112 @@ export function WorkspaceMain({
           </div>
         </div>
       </header>
+
+      {isTelegramModalOpen && (
+        <Modal title="텔레그램 연결" onClose={() => setTelegramModalOpen(false)}>
+          <div className="telegram-link">
+            <p className="telegram-link-desc">
+              아래 코드를 텔레그램 봇(@DocQTest_bot) 채팅방에 <code>/link &lt;코드&gt;</code> 형태로 입력하면
+              이 계정과 연결됩니다. 코드는 발급 후 10분간 유효합니다.
+            </p>
+            {telegramLoading && <p className="empty-text">코드를 발급하는 중…</p>}
+            {telegramError && <p className="form-error">{telegramError}</p>}
+            {telegramCode && (
+              <>
+                <div className="telegram-code">{telegramCode.code}</div>
+                <div className="telegram-link-command">
+                  <code>/link {telegramCode.code}</code>
+                  <button
+                    className="ghost-button action-button"
+                    onClick={() => navigator.clipboard?.writeText(`/link ${telegramCode.code}`)}
+                    type="button"
+                  >
+                    복사
+                  </button>
+                </div>
+                <button className="ghost-button action-button" onClick={openTelegramModal} type="button">
+                  <RefreshCw size={16} />
+                  <span className="action-label">코드 재발급</span>
+                </button>
+              </>
+            )}
+          </div>
+        </Modal>
+      )}
+
+      {isBotModalOpen && (
+        <Modal title="텔레그램 봇 등록" onClose={() => setBotModalOpen(false)}>
+          <div className="telegram-link">
+            <p className="telegram-link-desc">
+              @BotFather에서 만든 봇 토큰을 입력하면 이 프로젝트에 연결됩니다. 이후 그 봇과의 DM이나
+              봇이 초대된 그룹의 질문은 모두 이 프로젝트 문서로 답변합니다.
+            </p>
+            <details className="telegram-guide">
+              <summary>봇 토큰은 어떻게 만드나요?</summary>
+              <ol className="telegram-guide-steps">
+                <li>
+                  텔레그램에서 <strong>@BotFather</strong>를 열고 <code>/newbot</code>을 보냅니다.
+                </li>
+                <li>안내에 따라 봇 표시 이름과 username(<code>...bot</code>으로 끝남)을 입력합니다.</li>
+                <li>
+                  BotFather가 보내준 <strong>토큰</strong>(<code>123456:AAG...</code> 형태)을 복사해 아래에
+                  붙여넣고 <strong>등록</strong>을 누릅니다.
+                </li>
+                <li>등록한 봇과 DM을 시작하거나, 봇을 사용할 그룹에 초대합니다.</li>
+                <li>
+                  사용자는 <strong>프로필 ▸ 텔레그램 연결</strong>에서 계정을 연결한 뒤 봇에게 질문하면 됩니다.
+                </li>
+              </ol>
+              <p className="telegram-guide-tip">
+                그룹에서 봇이 일반 메시지를 받지 못하면, @BotFather의 <code>/setprivacy</code>로 privacy
+                mode를 끄거나 봇을 그룹 관리자로 지정하세요. 그룹에서는 <code>/ask 질문</code> 또는 봇 멘션으로
+                질문할 수 있습니다.
+              </p>
+            </details>
+            <form className="binding-form" onSubmit={submitBot}>
+              <input
+                onChange={(event) => setBotToken(event.target.value)}
+                placeholder="봇 토큰 (예: 8816265723:AAG...)"
+                value={botToken}
+              />
+              <button
+                className="primary-button action-button"
+                disabled={botLoading || !botToken.trim()}
+                type="submit"
+              >
+                <Plus size={16} />
+                <span className="action-label">등록</span>
+              </button>
+            </form>
+            {botError && <p className="form-error">{botError}</p>}
+            <div className="binding-list">
+              {botLoading && bots.length === 0 ? (
+                <p className="empty-text">불러오는 중…</p>
+              ) : bots.length === 0 ? (
+                <p className="empty-text">등록된 봇이 없습니다</p>
+              ) : (
+                bots.map((bot) => (
+                  <div className="binding-row" key={bot.id}>
+                    <span className="binding-info">
+                      <strong>{bot.botUsername ? `@${bot.botUsername}` : '(이름 없음)'}</strong>
+                      <small>{bot.maskedToken}</small>
+                    </span>
+                    <button
+                      className="icon-button nav-icon-button danger"
+                      disabled={botLoading}
+                      onClick={() => removeBot(bot.id)}
+                      title="봇 삭제"
+                      type="button"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {isProjectsModalOpen && (
         <Modal title="프로젝트 관리" onClose={() => setProjectsModalOpen(false)}>

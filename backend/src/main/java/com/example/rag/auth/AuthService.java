@@ -38,6 +38,10 @@ public class AuthService {
         if (user.isDeleted()) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.");
         }
+        if (!user.hasPassword()) {
+            // 구글 등 소셜 로그인으로 가입한 계정은 비밀번호가 없다.
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "소셜 로그인으로 가입한 계정입니다. 구글 로그인을 사용해주세요.");
+        }
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.");
         }

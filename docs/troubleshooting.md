@@ -87,3 +87,20 @@ access token이 만료되면 보호된 API가 `401`을 반환하고, 프론트�
 ```env
 RAG_SIMILARITY_THRESHOLD=0.20
 ```
+
+## 구글 OAuth 설정 시 부팅이 "Client id of registration 'google' must not be empty"로 실패할 때
+
+`application.yml`에 `spring.security.oauth2.client.registration.google` 키가 있으면, `client-id`가 비어 있어도 Spring Boot가 `OAuth2ClientProperties`를 생성·검증하다 부팅이 실패합니다(`ClientsConfiguredCondition`이 registration 키 존재 여부만 보기 때문).
+
+해결:
+
+1. `application.yml`에는 `spring.security.oauth2.*`를 두지 않습니다.
+2. 구글 자격증명은 환경변수로만 주입합니다. 설정하지 않으면 구글 로그인은 비활성화되고 앱은 정상 부팅됩니다.
+
+```env
+SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID=...
+SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET=...
+SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_REDIRECT_URI=http://localhost:8080/api/login/oauth2/code/google
+```
+
+프론트의 "구글로 로그인" 버튼은 `GET /api/auth/oauth-providers`가 `{"google": true}`를 반환할 때만 표시되므로, 미설정 시 버튼은 노출되지 않습니다.

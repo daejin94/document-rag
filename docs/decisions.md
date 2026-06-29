@@ -40,6 +40,15 @@ OPENAI_CHAT_MODEL
 - refresh token은 현재 별도 저장소 없이 access token과 동일하게 반환하는 MVP 형태이다.
 - 저장소 기반 refresh token은 사용자가 명시 요청한 경우에만 구현한다.
 
+## 구글 OAuth 로그인
+
+- 백엔드 주도(Authorization Code) 방식이다. 토큰 교환·사용자 식별·JWT 발급을 백엔드가 처리하고, 프론트는 버튼으로 시작점만 호출한다(얇은 클라이언트 유지).
+- stateless 정책을 깨지 않기 위해 Authorization 요청을 HTTP 세션이 아닌 단기 쿠키에 저장한다(`HttpCookieOAuth2AuthorizationRequestRepository`).
+- OAuth 엔드포인트를 `/api` 하위(`/api/oauth2/**`, `/api/login/oauth2/**`)로 두어 기존 `/api` 프록시를 그대로 재사용한다.
+- 계정 연동은 이메일 기준이다(구글이 이메일을 검증). 신규 구글 사용자도 일반 가입과 동일하게 `PENDING`으로 생성되어 관리자 승인을 거친다.
+- 구글 전용 계정은 비밀번호가 없으며(`password` NULL), 이메일/비밀번호 로그인을 거부한다.
+- `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`가 비어 있으면 OAuth 클라이언트는 비활성화되고 앱은 정상 부팅된다(조건부 `oauth2Login`).
+
 ## 접근 제어
 
 - 접근 제어는 **user 단위가 아니라 project 단위**다. 문서와 채팅은 프로젝트에 속한다.

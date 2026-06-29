@@ -1,5 +1,48 @@
 # 작업 완료
 
+## 텔레그램 연동 B-1(봇=프로젝트) 개편 (2026-06-26)
+
+- 목적: "프로젝트마다 자기 봇" 운영. 채널 바인딩 대신 **봇 토큰을 프로젝트에 등록**(봇=프로젝트), 멀티봇 지원.
+- 결정: 권한은 제한 유지(`/link` → identity_links → query의 requireMember가 프로젝트 멤버십 검증). 수신 모드는 글로벌(`polling`/`webhook`) 전환식. 봇 토큰은 `.env`가 아니라 DB(`bot_installations`)에 프로젝트별 등록.
+- 변경:
+  - V11 마이그레이션: `chat_bindings` 제거, `bot_installations` 추가, `inbound_messages`에 `installation_id` + 멱등성/세션을 (installation, event)·(installation, user) 단위로 재정의.
+  - 라우팅: webhook 경로 `/api/integrations/telegram/webhook/{installationId}`(설치별 secret 검증), poller는 단일 스레드로 등록된 모든 봇을 매 주기 폴링(봇별 offset). `TelegramApiClient`는 봇 토큰을 인자로 받는 멀티봇 클라이언트 + `getMe`(토큰 검증·username). `BotReplySender`/Worker는 메시지를 받은 설치의 토큰으로 회신.
+  - 등록 API: `TelegramBotController`(`/api/projects/{id}/integrations/telegram/bots` GET/POST/DELETE), `TelegramBotService`(getMe 검증 → secret 생성 → 저장 → webhook 모드면 setWebhook). 토큰은 마스킹 응답.
+  - 제거: `ChatBinding*`, `BindingService/Controller`, `TelegramWebhookRegistrar`, 단일봇 properties(botToken/webhookSecret/webhookUrl) → `public-base-url`로 대체.
+  - 프론트: "텔레그램 채널(채널 ID 입력)" → "텔레그램 봇(토큰 입력)" 모달로 교체. `fetchTelegramBots/registerTelegramBot/deleteTelegramBot`.
+- 상태: 백엔드 build + 프론트 build 통과. **DB 부팅 검증은 여전히 미실행(docker 없음)** — V11이 V10 위에 적용되어야 하며, 사용자 DB엔 V10이 이미 적용된 상태. 재기동 후 봇을 UI에서 다시 등록해야 동작(이전 `.env` 토큰 방식은 폐기).
+- 후속 가능: 봇 토큰 암호화 저장, Slack, 영속 큐.
+
+## 텔레그램 챗봇 RAG 연동 MVP (2026-06-26)
+
+- 시작일: 2026-06-26
+- 완료일: 2026-06-26
+- 목적: 외부 채팅 플랫폼(텔레그램)에서 봇에 질문하면 RAG API로 전달하고, 프로젝트 문서 기반 답변을 채팅방으로 응답
+- 현재 상태: 백엔드 컴파일·전체 빌드(단위 테스트) 통과. **실제 부팅(Flyway V10 적용 + Hibernate `validate`)은 미검증** — 이 환경에 docker 데몬이 없어 Postgres를 못 띄움. 엔티티↔마이그레이션 컬럼/타입은 수동 대조함. DB 띄운 뒤 `bootRun` 1회 확인 필요.
+- 결정 사항:
+  - 수신: long polling / webhook 둘 다 지원, `app.integration.telegram.mode`로 분기(로컬·WSL은 polling)
+  - 채널↔프로젝트 바인딩: REST 관리 API(project ADMIN, 기존 `requireAdmin` 가드 재사용)
+  - 호출 주체: 외부 사용자 매핑(`identity_links`). 텔레그램 user_id → app_users 매핑 후 그 userId로 `ChatService.query` 재사용(내부 `requireMember`가 권한 검증)
+- 흐름: webhook/poller 수신 → `TelegramUpdateService`(명령 `/start`·`/link`·`/ask` 분기) → `InboundMessageService.intake`(멱등성 `provider_event_id` UNIQUE + 바인딩/계정 확인) → `@Async BotQueryWorker`가 `ChatService.query` 호출 → `TelegramReplySender.sendText`로 답변. 같은 채널+사용자의 최근 세션 재사용으로 맥락 유지.
+- 구현: `integration/{config,common,telegram}` 패키지 신설. V10 마이그레이션(chat_bindings/identity_links/telegram_link_codes/inbound_messages). `SecurityConfig`에 `/api/integrations/*/webhook` permitAll(서명 대신 secret token 검증). `application.yml`·`.env.example`에 `TELEGRAM_*` 추가.
+- 미구현(후속): Slack 연동, 영속 작업 큐(재시도/DLQ·다중 인스턴스), 프로젝트별 봇 유저/슬래시 명령 바인딩, 출처 리치 렌더링, 레이트 리밋. 답변은 전송 안정성을 위해 parse_mode 없이 평문 전송.
+- 사용자 수동 작업: @BotFather로 봇 생성·토큰 발급, `.env`에 `TELEGRAM_ENABLED=true`+`TELEGRAM_MODE`+`TELEGRAM_BOT_TOKEN`(webhook이면 `TELEGRAM_WEBHOOK_URL`/`TELEGRAM_WEBHOOK_SECRET`). 앱에서 프로젝트 ADMIN이 채널 바인딩 + 사용자별 `/link` 코드 발급.
+- 프론트 UI: 프로필 메뉴 "텔레그램 연결"(일회용 코드 발급/복사 모달), 헤더 ADMIN 전용 "텔레그램 채널"(바인딩 목록/추가/삭제 모달). 미바인딩 채팅방에는 봇이 채널 ID를 회신해 관리자가 바로 등록하도록 함. `api.ts`/`types.ts`/`App.tsx`/`WorkspaceMain.tsx`/`styles.css`. 프론트 빌드 통과.
+- 관련 파일: backend `integration/**`, `auth/SecurityConfig`, `db/migration/V10__add_chat_integrations.sql`, `application.yml`; frontend `api.ts`·`types.ts`·`App.tsx`·`components/WorkspaceMain.tsx`·`styles.css`; `.env.example`.
+
+## 구글 OAuth 2.0 로그인 (2026-06-24)
+
+- 시작일: 2026-06-24
+- 완료일: 2026-06-24
+- 목적: 기존 JWT 인증에 구글 OAuth 2.0(백엔드 주도 Authorization Code) 로그인 추가
+- 현재 상태: 완료. 백엔드 컴파일·신규 단위 테스트, 프론트 빌드 통과. 실제 구글 라운드트립은 자격증명 등록 후 수동 검증 필요.
+  - 백엔드: `spring-boot-starter-oauth2-client` 추가. `User`에 `authProvider`/`providerId` + `googleUser(...)` 팩토리, password nullable(V9 마이그레이션). `OAuthService.loginOrRegisterGoogle`(이메일 기준 연동, 신규는 PENDING). 쿠키 기반 `HttpCookieOAuth2AuthorizationRequestRepository`(stateless 유지). `OAuth2LoginSuccessHandler`(승인 시 JWT 발급→`?token`, 그 외 `?oauth_error`), `OAuth2LoginFailureHandler`. `SecurityConfig`에 조건부 `oauth2Login`(자격증명 미설정 시 미활성) + `/api` 베이스 URI. `AuthService.login`에 소셜 계정(비밀번호 없음) 가드. `AuthController`에 `GET /api/auth/oauth-providers`(활성 제공자 조회) 추가.
+  - 프론트: `AuthScreen`에 "구글로 로그인" 버튼(인라인 G 아이콘) — `oauth-providers`가 google=true일 때만 노출. OAuth 피드백 표시. `App.tsx`가 콜백의 `?token`/`?oauth_error` 처리(저장 후 주소 정리).
+  - 결정: stateless 유지를 위해 세션 대신 쿠키 repo. OAuth 엔드포인트 `/api` 하위로 이동해 기존 프록시 재사용. 구글 신규 가입도 기존 관리자 승인 흐름 유지.
+  - 부팅 이슈 해결: `application.yml`에 `spring.security.oauth2.client.registration.google` 키가 있으면 client-id가 비어도 부팅 실패(`ClientsConfiguredCondition`이 키 존재만 검사). → yml 블록 제거하고 구글 설정은 **환경변수로만** 주입(표준 `SPRING_SECURITY_OAUTH2_...` 이름). 자격증명 없이 정상 부팅됨을 `bootRun`으로 확인.
+- 사용자 수동 작업: Google Cloud Console에서 OAuth 클라이언트 생성, 승인된 리디렉션 URI에 `...GOOGLE_REDIRECT_URI` 등록, `.env`에 `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID`/`...CLIENT_SECRET` 입력.
+- 관련 파일: backend `auth/oauth/*`, `auth/{SecurityConfig,AuthService}`, `user/{User,AuthProvider}`, `db/migration/V9__add_user_auth_provider.sql`, `application.yml`; frontend `components/AuthScreen.tsx`, `App.tsx`, `styles.css`; `.env.example`; 테스트 `auth/oauth/OAuthServiceTest`, `auth/AuthServiceTest`.
+
 ## 회원 가입 승인 기능 (2026-06-23)
 
 - 시작일: 2026-06-23

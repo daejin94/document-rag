@@ -581,3 +581,66 @@ Authorization: Bearer <ACCESS_TOKEN>
   }
 ]
 ```
+
+## Integrations (텔레그램)
+
+봇 = 프로젝트 구조의 텔레그램 챗봇 연동. 봇 토큰을 프로젝트에 등록하면 그 봇이 받은 질문은 해당 프로젝트 문서로 답한다. 자세한 흐름과 정책은 [feat/telegram-bot.md](feat/telegram-bot.md)를 참고한다.
+
+| Method | Path | 권한 | 설명 |
+|---|---|---|---|
+| GET | `/api/projects/{projectId}/integrations/telegram/bots` | 프로젝트 멤버 | 등록된 봇 목록(토큰 마스킹) |
+| POST | `/api/projects/{projectId}/integrations/telegram/bots` | 프로젝트 ADMIN | 봇 등록(`getMe`로 토큰 검증) |
+| DELETE | `/api/projects/{projectId}/integrations/telegram/bots/{installationId}` | 프로젝트 ADMIN | 봇 삭제(webhook도 해제) |
+| POST | `/api/integrations/telegram/link-codes` | 인증 | 텔레그램 계정 연결용 일회용 코드 발급 |
+| POST | `/api/integrations/telegram/webhook/{installationId}` | 공개(secret token) | 텔레그램 webhook 수신 |
+
+### 봇 등록
+
+```http
+POST /api/projects/1/integrations/telegram/bots
+Authorization: Bearer <ACCESS_TOKEN>
+Content-Type: application/json
+```
+
+요청:
+
+```json
+{
+  "botToken": "8816265723:AAG..."
+}
+```
+
+토큰을 텔레그램 `getMe`로 검증한다. 유효하지 않으면 `400`, 이미 등록된 토큰이면 `409`를 반환한다. webhook 모드면 등록과 동시에 `setWebhook`을 호출한다(공개 베이스 URL 미설정 시 `400`).
+
+응답(토큰은 마스킹되어 끝 4자리만 노출):
+
+```json
+{
+  "id": 1,
+  "botUsername": "DocQTest_bot",
+  "maskedToken": "••••fqK8",
+  "createdAt": "2026-06-26T00:00:00Z"
+}
+```
+
+### 계정 연결 코드 발급
+
+```http
+POST /api/integrations/telegram/link-codes
+Authorization: Bearer <ACCESS_TOKEN>
+```
+
+응답(코드는 10분간 유효):
+
+```json
+{
+  "code": "ABCD2345",
+  "expiresAt": "2026-06-26T00:10:00Z"
+}
+```
+
+발급한 코드를 채팅방에서 `/link <코드>`로 입력하면 텔레그램 계정이 로그인 사용자 계정에 연결된다(`identity_links`). 이후 그 사용자가 멤버인 프로젝트의 봇에만 답변이 제공된다.
+
+### webhook 수신
+
+텔레그램이 보내는 업데이트를 수신한다. JWT가 아니라 `X-Telegram-Bot-Api-Secret-Token` 헤더(설치별 secret)로 검증하며, 항상 `200`을 빠르게 반환하고 RAG 질의는 비동기로 처리한다. polling 모드에서는 사용하지 않는다.
