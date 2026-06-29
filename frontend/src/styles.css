@@ -865,6 +865,104 @@ h1 {
   box-shadow: none;
 }
 
+/* 답변 모드 토글 + 문서 엄격도 슬라이더: chat-composer 그리드 위쪽 전체 폭을 차지한다 */
+.composer-controls {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.answer-mode-toggle {
+  display: inline-flex;
+  gap: 4px;
+  width: fit-content;
+  padding: 3px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: var(--pearl);
+}
+
+.threshold-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+/* 채움(왼쪽)은 흐린 회색, 빈 영역(오른쪽)은 진한 잉크색. 채움 위치는 인라인 --fill(%)로 전달한다. */
+.threshold-control input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 120px;
+  height: 16px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.threshold-control input[type='range']::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(to right, var(--hairline) var(--fill, 20%), var(--ink) var(--fill, 20%));
+}
+
+.threshold-control input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 2px solid var(--canvas);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.threshold-control input[type='range']::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(to right, var(--hairline) var(--fill, 20%), var(--ink) var(--fill, 20%));
+}
+
+.threshold-control input[type='range']::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 2px solid var(--canvas);
+}
+
+.threshold-value {
+  min-width: 38px;
+  opacity: 0.65;
+  font-variant-numeric: tabular-nums;
+}
+
+.answer-mode-option {
+  border: 0;
+  padding: 5px 12px;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink);
+  opacity: 0.55;
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.answer-mode-option:hover {
+  opacity: 0.85;
+}
+
+.answer-mode-option.active {
+  background: var(--canvas);
+  opacity: 1;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
 .chat-message {
   display: grid;
   gap: 7px;

@@ -26,6 +26,7 @@ import { UploadForm } from './components/UploadForm';
 import { WorkspaceMain } from './components/WorkspaceMain';
 import { WorkspaceSidebar } from './components/WorkspaceSidebar';
 import type {
+  AnswerMode,
   ChatMessage,
   ChatSession,
   DocumentDetail,
@@ -155,6 +156,8 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
   const [memberEmail, setMemberEmail] = useState('');
   const [memberRole, setMemberRole] = useState<ProjectRole>('MEMBER');
   const [question, setQuestion] = useState('');
+  const [answerMode, setAnswerMode] = useState<AnswerMode>('STRICT');
+  const [similarityThreshold, setSimilarityThreshold] = useState(0.2);
   const [error, setError] = useState('');
   const [projectError, setProjectError] = useState('');
   const [deleteProjectError, setDeleteProjectError] = useState('');
@@ -416,7 +419,7 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
     };
     setMessages((current) => [...current, userMessage]);
     try {
-      const response = await queryDocuments(token, userMessage.content, currentProjectId, selectedIds, currentSessionId ?? undefined);
+      const response = await queryDocuments(token, userMessage.content, currentProjectId, selectedIds, currentSessionId ?? undefined, answerMode, similarityThreshold);
       setCurrentSessionId(response.sessionId);
       setAnswerStatus('typing');
       await revealAssistantMessage(response.answer, response.sources);
@@ -536,6 +539,10 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
         busy={busy}
         answerStatus={answerStatus}
         onQuestionChange={setQuestion}
+        answerMode={answerMode}
+        onAnswerModeChange={setAnswerMode}
+        similarityThreshold={similarityThreshold}
+        onSimilarityThresholdChange={setSimilarityThreshold}
         onAsk={ask}
         onOpenUploadModal={() => setUploadModalOpen(true)}
         onOpenMemberModal={openMemberModal}

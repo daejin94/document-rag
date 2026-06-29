@@ -68,8 +68,9 @@ public class BotQueryWorker {
             Long priorSessionId = inboundMessageService.findPriorSessionId(
                     message.getInstallationId(), message.getExternalUserId());
 
+            // 봇 채널은 모드/임계값 선택 UI가 없으므로 둘 다 null → ChatService에서 기본값으로 처리한다.
             QueryResponse response = chatService.query(
-                    userId, projectId, new QueryRequest(message.getQuestion(), null, priorSessionId));
+                    userId, projectId, new QueryRequest(message.getQuestion(), null, priorSessionId, null, null));
 
             inboundMessageService.markDone(inboundId, response.sessionId());
             sender.sendText(token, channelId, formatAnswer(response), replyRef);

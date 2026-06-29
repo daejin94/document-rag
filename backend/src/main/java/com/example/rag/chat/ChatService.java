@@ -104,14 +104,18 @@ public class ChatService {
                 ragProperties.topK()
         );
 
-        boolean hasSearchContext = hasSearchContext(searchResults);
+        AnswerMode mode = AnswerMode.orDefault(request.mode());
+        double threshold = resolveThreshold(request.similarityThreshold());
+        boolean hasSearchContext = hasSearchContext(searchResults, threshold);
         List<SearchResult> contextResults = hasSearchContext ? searchResults : List.of();
-        if (!hasSearchContext && history.isEmpty()) {
+        // STRICT: 문서 컨텍스트도 대화 history도 없으면 LLM을 호출하지 않고 단락한다.
+        // HYBRID: 문서가 없어도 모델의 일반 지식으로 답변하도록 LLM 호출을 진행한다.
+        if (!hasSearchContext && history.isEmpty() && mode == AnswerMode.STRICT) {
             return noContextResponse(session);
         }
 
         ChatModelResult modelResult = chatModelClient.generate(new ChatModelRequest(
-                promptBuilder.systemPrompt(),
+                promptBuilder.systemPrompt(mode),
                 promptBuilder.userPrompt(request.question(), contextResults, history)
         ));
         ChatMessage assistantMessage = chatMessageRepository.save(new ChatMessage(session, MessageRole.ASSISTANT, modelResult.answer()));
@@ -191,8 +195,16 @@ public class ChatService {
         return messages.subList(messages.size() - MAX_HISTORY_MESSAGES, messages.size());
     }
 
-    private boolean hasSearchContext(List<SearchResult> searchResults) {
-        return !searchResults.isEmpty() && searchResults.getFirst().similarity() >= ragProperties.similarityThreshold();
+    private boolean hasSearchContext(List<SearchResult> searchResults, double threshold) {
+        return !searchResults.isEmpty() && searchResults.getFirst().similarity() >= threshold;
+    }
+
+    // 요청이 임계값을 주면 0~1로 clamp해 사용하고, 없으면 설정 기본값을 쓴다.
+    private double resolveThreshold(Double requested) {
+        if (requested == null) {
+            return ragProperties.similarityThreshold();
+        }
+        return Math.max(0.0, Math.min(1.0, requested));
     }
 
     private SourceResponse toSourceResponse(SearchResult result) {

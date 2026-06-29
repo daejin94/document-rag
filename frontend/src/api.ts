@@ -1,6 +1,7 @@
 import type {
   AdminProject,
   AdminUser,
+  AnswerMode,
   ChatMessage,
   ChatSession,
   DailyUsage,
@@ -120,10 +121,10 @@ export function deleteDocument(token: string, projectId: number, documentId: num
   return request<{ deleted: boolean }>(`/api/projects/${projectId}/documents/${documentId}`, { method: 'DELETE' }, token);
 }
 
-export function queryDocuments(token: string, question: string, projectId: number, documentIds: number[], sessionId?: number) {
+export function queryDocuments(token: string, question: string, projectId: number, documentIds: number[], sessionId?: number, mode?: AnswerMode, similarityThreshold?: number) {
   return request<QueryResponse>(`/api/projects/${projectId}/chat/query`, {
     method: 'POST',
-    body: JSON.stringify({ question, documentIds, sessionId }),
+    body: JSON.stringify({ question, documentIds, sessionId, mode, similarityThreshold }),
   }, token);
 }
 

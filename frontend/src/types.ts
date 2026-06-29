@@ -1,5 +1,8 @@
 export type DocumentStatus = 'UPLOADED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
 
+// 답변의 문서 의존도. STRICT=문서 Context만, HYBRID=문서 우선 + 부족분 AI 일반 지식 보충.
+export type AnswerMode = 'STRICT' | 'HYBRID';
+
 export interface LoginResponse {
   accessToken: string;
   refreshToken: string;

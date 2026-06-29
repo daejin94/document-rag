@@ -1,4 +1,4 @@
-import { useState, type FormEventHandler } from 'react';
+import { useState, type CSSProperties, type FormEventHandler } from 'react';
 import {
   Bot,
   CircleUserRound,
@@ -17,7 +17,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Modal } from './Modal';
 import { Dropdown } from './Dropdown';
-import type { ChatMessage, ChatSession, DocumentDetail, DocumentItem, Project, Source, TelegramBot, TelegramLinkCode } from '../types';
+import type { AnswerMode, ChatMessage, ChatSession, DocumentDetail, DocumentItem, Project, Source, TelegramBot, TelegramLinkCode } from '../types';
 
 interface WorkspaceMainProps {
   currentProject: Project | null;
@@ -33,6 +33,10 @@ interface WorkspaceMainProps {
   error: string;
   busy: boolean;
   answerStatus: 'idle' | 'waiting' | 'typing';
+  answerMode: AnswerMode;
+  onAnswerModeChange: (mode: AnswerMode) => void;
+  similarityThreshold: number;
+  onSimilarityThresholdChange: (value: number) => void;
   onQuestionChange: (question: string) => void;
   onAsk: FormEventHandler<HTMLFormElement>;
   onOpenUploadModal: () => void;
@@ -63,6 +67,10 @@ export function WorkspaceMain({
   error,
   busy,
   answerStatus,
+  answerMode,
+  onAnswerModeChange,
+  similarityThreshold,
+  onSimilarityThresholdChange,
   onQuestionChange,
   onAsk,
   onOpenUploadModal,
@@ -512,10 +520,44 @@ export function WorkspaceMain({
           </div>
 
           <form className="chat-composer" onSubmit={onAsk}>
+            <div className="composer-controls">
+              <div className="answer-mode-toggle" role="group" aria-label="답변 모드">
+                <button
+                  type="button"
+                  className={`answer-mode-option${answerMode === 'STRICT' ? ' active' : ''}`}
+                  onClick={() => onAnswerModeChange('STRICT')}
+                  title="업로드한 문서 내용만으로 답합니다."
+                >
+                  문서만
+                </button>
+                <button
+                  type="button"
+                  className={`answer-mode-option${answerMode === 'HYBRID' ? ' active' : ''}`}
+                  onClick={() => onAnswerModeChange('HYBRID')}
+                  title="문서를 우선하되, 부족하면 AI 일반 지식으로 보충합니다."
+                >
+                  문서 + AI 보충
+                </button>
+              </div>
+              <div className="threshold-control" title="검색된 문서를 답변 근거로 채택하는 최소 유사도입니다. 높일수록 더 정확히 일치하는 문서만 사용합니다.">
+                <label htmlFor="threshold-range">문서 엄격도</label>
+                <input
+                  id="threshold-range"
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={similarityThreshold}
+                  onChange={(event) => onSimilarityThresholdChange(Number(event.target.value))}
+                  style={{ '--fill': `${Math.round(similarityThreshold * 100)}%` } as CSSProperties}
+                />
+                <span className="threshold-value">{Math.round(similarityThreshold * 100)}%</span>
+              </div>
+            </div>
             <textarea
               value={question}
               onChange={(event) => onQuestionChange(event.target.value)}
-              placeholder="질문하거나 창작하세요"
+              placeholder={answerMode === 'HYBRID' ? '문서 + AI 지식으로 답합니다' : '질문하거나 창작하세요'}
               rows={3}
             />
             <button className="primary-button send-button" disabled={busy || !currentProjectId} type="submit">

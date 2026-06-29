@@ -7,6 +7,8 @@ import java.util.List;
 public record QueryRequest(
         @NotBlank String question,
         List<Long> documentIds,
-        Long sessionId
+        Long sessionId,
+        AnswerMode mode,
+        Double similarityThreshold
 ) {
 }
