@@ -361,12 +361,21 @@ Content-Type: application/json
 {
   "question": "JWT 인증 흐름 설명해줘.",
   "documentIds": [1],
-  "sessionId": null
+  "sessionId": null,
+  "mode": "STRICT",
+  "similarityThreshold": 0.2
 }
 ```
 
 `documentIds`가 비어 있거나 `null`이면 프로젝트의 `COMPLETED` 문서 전체를 검색 대상으로 삼는다. `documentIds`에 다른 프로젝트의 문서 id가 포함되면 `403`을 반환한다.
 `sessionId`가 `null`이거나 없으면 새 채팅 세션을 생성한다. 기존 세션 id를 보내면 해당 세션의 최근 대화 맥락을 함께 사용한다.
+
+`mode`(선택, 기본 `STRICT`)는 답변의 문서 의존도를 정한다.
+
+- `STRICT`: 제공된 문서 Context만 근거로 답한다. 검색 컨텍스트도 대화 history도 없으면 LLM을 호출하지 않고 "등록된 문서에서 관련 정보를 찾을 수 없습니다."로 단락한다.
+- `HYBRID`: 문서 Context를 우선하되 부족하면 모델의 일반 지식으로 보충한다(보충분은 답변에서 "(문서 외 일반 지식)"으로 표시). 검색 컨텍스트가 없어도 답변을 시도한다.
+
+`similarityThreshold`(선택, `0`~`1`)는 검색 결과를 답변 근거로 채택하는 최소 유사도(최상위 결과 기준)다. 없으면 서버 설정값(`RAG_SIMILARITY_THRESHOLD`)을 사용하고, 범위를 벗어난 값은 `0`~`1`로 보정한다. 낮출수록 문서를 더 적극적으로 채택하고, 높일수록 정확히 일치하는 문서만 사용한다.
 
 응답:
 
