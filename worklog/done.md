@@ -1,5 +1,43 @@
 # 작업 완료
 
+## 문서 엄격도(similarity-threshold) 슬라이더 추가 (2026-06-29)
+
+- 목적: 채팅 사용자가 질문마다 검색 게이트의 유사도 임계값(문서 채택 엄격도)을 직접 조절.
+- 백엔드: `QueryRequest`에 `similarityThreshold`(Double, nullable). `ChatService.resolveThreshold`가 요청값을 0~1 clamp, 없으면 `RagProperties.similarityThreshold()` 기본값. `hasSearchContext(results, threshold)`로 시그니처 변경. `BotQueryWorker`의 QueryRequest는 5-인자(null)로 보정.
+- 프론트: `api.queryDocuments(similarityThreshold)`, `App` similarityThreshold 상태(기본 0.2), `WorkspaceMain` chat-composer 상단에 range 슬라이더(0~100% 표시). 답변 모드 토글과 함께 `.composer-controls`로 묶음. styles.css 슬라이더 스타일.
+- 검증: 프론트 `tsc --noEmit` 통과, 백엔드 `compileJava` 통과.
+- 비고: 답변 모드 토글과 한 묶음(문서 의존도 조절 UI)으로 커밋해도 무방.
+
+## 답변 모드(문서 의존도) 토글 추가 (2026-06-29)
+
+- 목적: RAG 답변의 문서 의존 비중을 채팅 사용자가 질문마다 조절.
+- 모드: STRICT(기본, 현행 — 문서 Context만, 없으면 "관련 정보 없음") / HYBRID(문서 우선 + 부족분 일반 지식 보충, 보충분은 "(문서 외 일반 지식)" 표시, 검색 컨텍스트 없어도 답변).
+- 백엔드: `chat/AnswerMode` enum 추가. `QueryRequest`에 `mode` 필드(nullable→STRICT). `ChatService`가 게이트 분기(HYBRID는 컨텍스트 없어도 LLM 호출)와 `promptBuilder.systemPrompt(mode)` 사용. `PromptBuilder`에 HYBRID 완화 프롬프트.
+- 봇 경로: `BotQueryWorker`의 `new QueryRequest(...)`를 4-인자(mode=null)로 수정 — 텔레그램 봇은 STRICT 고정.
+- 프론트: `types.AnswerMode`, `api.queryDocuments(mode)`, `App` answerMode 상태, `WorkspaceMain` 채팅 입력 상단 토글(문서만 / 문서+AI 보충), styles.css 토글 스타일(테마 변수 기반).
+- 검증: 프론트 `tsc --noEmit` 통과, 백엔드 `compileJava` 통과.
+- 비고: OCR 작업과 별개 — 커밋 분리 권장.
+
+## 채팅 실행 ps1 작업 디렉터리 복원 (2026-06-29)
+
+- 증상: `run-backend.ps1`/`run-frontend.ps1` 종료 후 호출자의 현재 위치가 backend/frontend로 바뀐 채 남음.
+- 원인: PowerShell location은 세션 전역이라 스크립트 내 `Set-Location`이 종료 후에도 유지됨.
+- 수정: `Set-Location` → `Push-Location` + `try/finally { Pop-Location }`. 정상·에러·Ctrl+C 어느 경우든 원위치 복원. 구문 검증 통과.
+
+## 이미지 문서 OCR 기능 추가 (2026-06-29)
+
+- 목적: 이미지 파일(PNG/JPG/JPEG)과 텍스트 없는 스캔 PDF를 OCR로 텍스트화해 기존 chunk→embedding→검색 흐름에 태운다.
+- 엔진: OpenAI 비전 모델(`OPENAI_OCR_MODEL`, 기본 `gpt-4o-mini`). 새 native 의존성 없음.
+- 변경:
+  - `llm`: `OcrModelClient` 인터페이스 + `OpenAiOcrModelClient`(`/v1/chat/completions`에 base64 `image_url` 전송) + `OcrResult`. `OpenAiProperties.ocrModel` 추가.
+  - `document`: `TextExtractor`가 `OcrModelClient`/`RagProperties` 주입받아 ① 이미지 확장자→OCR, ② PDF는 PDFBox 텍스트가 부족하면(기존 품질 게이트를 boolean으로 전환) `PDFRenderer`로 페이지 렌더링→OCR fallback. 반환 타입을 `ExtractionResult`(text + OCR 토큰/모델)로 변경.
+  - `RagProperties`에 `ocrMaxPages`(20)/`ocrDpi`(200), application.yml·.env.example 설정 추가.
+  - `DocumentService.upload`가 OCR 토큰을 `TokenUsageType.OCR_UPLOAD`로 별도 기록.
+  - 프론트 `UploadForm` accept에 이미지 확장자 추가.
+- 토큰 집계: admin `embeddingTokens`(비-CHAT 합)에 OCR_UPLOAD가 포함됨(전체 total은 정확). 별도 분리는 후속 과제.
+- 테스트: `TextExtractorTest` 갱신(stub OCR 주입) — 이미지 OCR, PDF fallback, blank 처리 등. `./gradlew test` 통과.
+- 후속 가능: 다중 페이지 OCR 비동기화(업로드 지연), admin OCR 토큰 별도 컬럼, WEBP 등 형식 확장.
+
 ## 텔레그램 연동 B-1(봇=프로젝트) 개편 (2026-06-26)
 
 - 목적: "프로젝트마다 자기 봇" 운영. 채널 바인딩 대신 **봇 토큰을 프로젝트에 등록**(봇=프로젝트), 멀티봇 지원.
