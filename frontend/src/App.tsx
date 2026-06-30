@@ -419,7 +419,9 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
     };
     setMessages((current) => [...current, userMessage]);
     try {
-      const response = await queryDocuments(token, userMessage.content, currentProjectId, selectedIds, currentSessionId ?? undefined, answerMode, similarityThreshold);
+      // HYBRID(문서+AI 보충)에서는 엄격도를 적용하지 않는다(슬라이더 비활성). 기본값을 쓰도록 undefined로 보낸다.
+      const thresholdToSend = answerMode === 'HYBRID' ? undefined : similarityThreshold;
+      const response = await queryDocuments(token, userMessage.content, currentProjectId, selectedIds, currentSessionId ?? undefined, answerMode, thresholdToSend);
       setCurrentSessionId(response.sessionId);
       setAnswerStatus('typing');
       await revealAssistantMessage(response.answer, response.sources);

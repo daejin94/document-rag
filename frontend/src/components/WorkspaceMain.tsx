@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type FormEventHandler } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type FormEventHandler } from 'react';
 import {
   Bot,
   CircleUserRound,
@@ -100,6 +100,17 @@ export function WorkspaceMain({
   const [botToken, setBotToken] = useState('');
   const [botLoading, setBotLoading] = useState(false);
   const [botError, setBotError] = useState('');
+
+  // 질문 입력창: 수동 리사이즈 대신 내용(줄바꿈)에 따라 높이를 자동 조절한다.
+  const questionRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = questionRef.current;
+    if (!el) {
+      return;
+    }
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [question]);
 
   async function openTelegramModal() {
     setProfileMenuOpen(false);
@@ -519,46 +530,63 @@ export function WorkspaceMain({
             )}
           </div>
 
-          <form className="chat-composer" onSubmit={onAsk}>
-            <div className="composer-controls">
-              <div className="answer-mode-toggle" role="group" aria-label="답변 모드">
-                <button
-                  type="button"
-                  className={`answer-mode-option${answerMode === 'STRICT' ? ' active' : ''}`}
-                  onClick={() => onAnswerModeChange('STRICT')}
-                  title="업로드한 문서 내용만으로 답합니다."
-                >
-                  문서만
-                </button>
-                <button
-                  type="button"
-                  className={`answer-mode-option${answerMode === 'HYBRID' ? ' active' : ''}`}
-                  onClick={() => onAnswerModeChange('HYBRID')}
-                  title="문서를 우선하되, 부족하면 AI 일반 지식으로 보충합니다."
-                >
-                  문서 + AI 보충
-                </button>
-              </div>
-              <div className="threshold-control" title="검색된 문서를 답변 근거로 채택하는 최소 유사도입니다. 높일수록 더 정확히 일치하는 문서만 사용합니다.">
-                <label htmlFor="threshold-range">문서 엄격도</label>
-                <input
-                  id="threshold-range"
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  value={similarityThreshold}
-                  onChange={(event) => onSimilarityThresholdChange(Number(event.target.value))}
-                  style={{ '--fill': `${Math.round(similarityThreshold * 100)}%` } as CSSProperties}
-                />
-                <span className="threshold-value">{Math.round(similarityThreshold * 100)}%</span>
-              </div>
+          <div className="composer-controls">
+            <div className="answer-mode-toggle" role="group" aria-label="답변 모드">
+              <button
+                type="button"
+                className={`answer-mode-option${answerMode === 'STRICT' ? ' active' : ''}`}
+                onClick={() => onAnswerModeChange('STRICT')}
+                title="업로드한 문서 내용만으로 답합니다."
+              >
+                문서만
+              </button>
+              <button
+                type="button"
+                className={`answer-mode-option${answerMode === 'HYBRID' ? ' active' : ''}`}
+                onClick={() => onAnswerModeChange('HYBRID')}
+                title="문서를 우선하되, 부족하면 AI 일반 지식으로 보충합니다."
+              >
+                문서 + AI 보충
+              </button>
             </div>
+            <div
+              className={`threshold-control${answerMode === 'HYBRID' ? ' disabled' : ''}`}
+              title={answerMode === 'HYBRID'
+                ? '문서 + AI 보충 모드에서는 문서가 부족해도 AI가 답하므로 엄격도가 적용되지 않습니다.'
+                : '검색된 문서를 답변 근거로 채택하는 최소 유사도입니다. 높일수록 더 정확히 일치하는 문서만 사용합니다.'}
+            >
+              <label htmlFor="threshold-range">문서 엄격도</label>
+              <input
+                id="threshold-range"
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={similarityThreshold}
+                disabled={answerMode === 'HYBRID'}
+                onChange={(event) => onSimilarityThresholdChange(Number(event.target.value))}
+                style={{ '--fill': `${Math.round(similarityThreshold * 100)}%` } as CSSProperties}
+              />
+              <span className="threshold-value">{Math.round(similarityThreshold * 100)}%</span>
+            </div>
+          </div>
+
+          <form className="chat-composer" onSubmit={onAsk}>
             <textarea
+              ref={questionRef}
               value={question}
               onChange={(event) => onQuestionChange(event.target.value)}
-              placeholder={answerMode === 'HYBRID' ? '문서 + AI 지식으로 답합니다' : '질문하거나 창작하세요'}
-              rows={3}
+              onKeyDown={(event) => {
+                // Enter로 전송, Shift+Enter는 줄바꿈. 전송 불가 상태에서는 무시한다.
+                if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+                  event.preventDefault();
+                  if (!busy && currentProjectId) {
+                    event.currentTarget.form?.requestSubmit();
+                  }
+                }
+              }}
+              placeholder={answerMode === 'HYBRID' ? '문서 + AI 지식으로 답합니다 (Enter 전송)' : '질문하거나 창작하세요 (Enter 전송)'}
+              rows={1}
             />
             <button className="primary-button send-button" disabled={busy || !currentProjectId} type="submit">
               {busy ? <RefreshCw className="spin" size={18} /> : <Send size={18} />}

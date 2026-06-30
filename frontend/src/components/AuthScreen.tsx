@@ -31,9 +31,9 @@ function GoogleIcon() {
 
 export function AuthScreen({ onAuthenticated, sessionExpired = false, oauthFeedback = null }: AuthScreenProps) {
   const [mode, setMode] = useState<AuthMode>('login');
-  const [email, setEmail] = useState('user@example.com');
-  const [password, setPassword] = useState('password1234');
-  const [name, setName] = useState('대진');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
@@ -102,16 +102,16 @@ export function AuthScreen({ onAuthenticated, sessionExpired = false, oauthFeedb
           {mode === 'signup' && (
             <label>
               이름
-              <input value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" />
+              <input value={name} onChange={(event) => setName(event.target.value)} placeholder="이름" autoComplete="name" />
             </label>
           )}
           <label>
             이메일
-            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" />
+            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" placeholder="이메일" autoComplete="email" />
           </label>
           <label>
             비밀번호
-            <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" />
+            <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" placeholder="비밀번호" autoComplete="current-password" />
           </label>
           {error && <p className="error-text">{error}</p>}
           <button className="primary-button" disabled={busy} type="submit">

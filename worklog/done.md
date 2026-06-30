@@ -1,5 +1,17 @@
 # 작업 완료
 
+## 채팅·회원가입 화면 UI 다듬기 (2026-06-30)
+
+- 회원가입/로그인: 이름·이메일·비밀번호 입력 기본값(`대진`/`user@example.com`/`password1234`) 제거하고 placeholder 힌트로 전환.
+- 채팅 composer: 답변 모드 토글 + 문서 엄격도 슬라이더를 질문 입력창 바로 위 `.composer-controls` 가로 바로 배치(여러 차례 위치 조정 끝에 옆 패널 아님 → 입력창 위로 확정).
+- 입력창: 수동 드래그 리사이즈(`resize`) 제거 → `useEffect`+`ref`로 내용(줄바꿈)에 따라 높이 자동 조절(min~max, 초과 시 내부 스크롤). Enter 전송/Shift+Enter 줄바꿈, IME 조합 중 전송 방지 유지.
+- 전송 버튼: `gap:0`으로 종이비행기 아이콘 정중앙 정렬.
+- 문서 엄격도 슬라이더: 전역 input에서 물려받던 둥근 외곽 테두리·포커스 아웃라인 제거, thumb 흰테두리/그림자(2중 원처럼 보이던 것) 제거, 다크 배경용 트랙/thumb 색으로 단일 슬라이더화, 길이 120→160px.
+- 답변 모드 토글 가시성: 컨테이너 다크 톤, 선택 옵션을 밝은 파랑(`--action-blue-on-dark`)+흰 글씨+굵게로 강조.
+- 동작 변경: HYBRID(문서+AI 보충) 모드에서 문서 엄격도 슬라이더 비활성화(`disabled`+흐리게). STRICT에서 엄격도가 핵심 게이트라 STRICT는 활성 유지. HYBRID일 때는 호출부에서 threshold를 `undefined`로 보내 서버 기본값 사용(옛 높은 값이 문서 인용을 막는 부작용 방지).
+- 검증: 프론트 `tsc --noEmit` 통과. 백엔드 변경 없음(기존 nullable threshold 처리 활용).
+- 관련 파일: frontend `components/AuthScreen.tsx`, `components/WorkspaceMain.tsx`, `App.tsx`, `styles.css`.
+
 ## 문서 엄격도(similarity-threshold) 슬라이더 추가 (2026-06-29)
 
 - 목적: 채팅 사용자가 질문마다 검색 게이트의 유사도 임계값(문서 채택 엄격도)을 직접 조절.
