@@ -1,5 +1,18 @@
 # 작업 완료
 
+## 라이트 모드 지원 (2026-07-01)
+
+- 시작일: 2026-07-01
+- 완료일: 2026-07-01
+- 목적: 다크 테마 전용이던 프론트엔드에 수동 토글 + localStorage 저장 + 전체 화면(로그인/워크스페이스/관리자) 라이트 모드 지원 추가.
+- 현재 상태: 완료. 4단계로 나눠 진행.
+  - Phase 1: `frontend/src/theme.tsx`(ThemeProvider/useTheme, localStorage `document-rag-theme`, 기본값 dark), `frontend/src/components/ThemeToggle.tsx`(lucide Sun/Moon) 추가. `main.tsx`에 ThemeProvider 연결, `index.html`에 FOUC 방지 인라인 스크립트. 로그인/회원가입/관리자 화면은 이미 CSS 변수 기반이라 `.auth-shell`/`.admin-shell`의 다크 팔레트 오버라이드 블록(`styles.css`)을 `[data-theme='dark']`로 감싸는 것만으로 라이트 지원 완료 — hex 변경 없이 기존 변수 캐스케이드를 그대로 활용.
+  - Phase 2: 워크스페이스/사이드바/채팅 영역은 hex가 선택자에 직접 박혀 있어(변수 미사용) `.workspace` 스코프에 전용 시맨틱 변수(`--ws-bg-canvas/surface/deep/input/elevated/card/card-alt/hover/active`, `--ws-border/-strong/-hover`, `--ws-text-primary/secondary/tertiary`, `--ws-accent`, `--ws-danger-bg/fg`) 신설. `.workspace {}`에 라이트 기본값, `[data-theme='dark'] .workspace {}`에 기존 다크 hex 그대로 이식. 사이드바/채팅/문서·세션 목록/답변모드토글/문서 일치 기준 슬라이더의 주요 배경·테두리·텍스트를 이 변수로 치환(약 170개 hex 중 핵심 표면·텍스트 위주, 스튜디오 액션 색상칩·역할배지·텔레그램 강조색 등 저영향 장식색 10여 개는 라이트/다크 공통으로 유지). `WorkspaceSidebar.tsx`에 토글 배치.
+  - Phase 3: 관리자 콘솔은 Phase 1의 `.admin-shell` 스코프 변수 트릭 덕분에 추가 작업 없이 이미 동작 — `AdminApp.tsx` 헤더에 토글만 배치.
+  - Phase 4: 전체 hex 재검색(문제 없음 확인), 로그아웃 시 `document-rag-token`만 제거되고 `document-rag-theme`는 별개 키라 유지됨을 코드로 확인, 반응형 `@media` 블록 정상 확인.
+- 검증: `npm run build`(tsc+vite) 매 Phase 통과. 로그인/회원가입 화면은 preview 브라우저로 직접 라이트/다크 토글·새로고침 후 유지·콘솔 에러 없음까지 확인. 워크스페이스/관리자 화면은 사용자가 실제 로그인 세션에서 육안 확인.
+- 관련 파일: frontend/src/theme.tsx(신규), frontend/src/components/ThemeToggle.tsx(신규), frontend/src/main.tsx, frontend/index.html, frontend/src/styles.css, frontend/src/components/AuthScreen.tsx, frontend/src/components/WorkspaceSidebar.tsx, frontend/src/components/admin/AdminApp.tsx
+
 ## 채팅·회원가입 화면 UI 다듬기 (2026-06-30)
 
 - 회원가입/로그인: 이름·이메일·비밀번호 입력 기본값(`대진`/`user@example.com`/`password1234`) 제거하고 placeholder 힌트로 전환.
