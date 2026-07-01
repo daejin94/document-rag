@@ -112,6 +112,22 @@ export function WorkspaceMain({
     el.style.height = `${el.scrollHeight}px`;
   }, [question]);
 
+  // 같은 대화 안에서 새 질문이 추가되면, 쌓인 이전 대화 대신 새 질문이 보이도록 그 위치로 스크롤한다.
+  const lastUserMessageRef = useRef<HTMLDivElement>(null);
+  const prevFirstMessageKeyRef = useRef<string | null>(null);
+  const prevUserMessageCountRef = useRef(0);
+  useEffect(() => {
+    const firstMessageKey = messages[0] ? `${messages[0].createdAt}-0` : null;
+    const userMessageCount = messages.filter((message) => message.role === 'USER').length;
+    const isSameConversation = firstMessageKey === prevFirstMessageKeyRef.current;
+    if (isSameConversation && userMessageCount > prevUserMessageCountRef.current) {
+      lastUserMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    prevFirstMessageKeyRef.current = firstMessageKey;
+    prevUserMessageCountRef.current = userMessageCount;
+  }, [messages]);
+  const lastUserMessageIndex = messages.length - 1 - [...messages].reverse().findIndex((message) => message.role === 'USER');
+
   async function openTelegramModal() {
     setProfileMenuOpen(false);
     setTelegramModalOpen(true);
@@ -489,6 +505,7 @@ export function WorkspaceMain({
                     <div
                       className={messageClassName}
                       key={`${message.createdAt}-${index}`}
+                      ref={index === lastUserMessageIndex ? lastUserMessageRef : undefined}
                     >
                       <strong>{message.role === 'USER' ? '나' : 'AI'}</strong>
                       {message.role === 'ASSISTANT' ? (

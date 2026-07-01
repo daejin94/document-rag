@@ -845,7 +845,7 @@ h1 {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
-  align-items: end;
+  align-items: center;
   padding: 10px;
   border: 1px solid var(--hairline);
   border-radius: 18px;
@@ -2172,8 +2172,8 @@ h1 {
 }
 
 .assistant-message {
-  background: transparent;
-  border-color: transparent;
+  border-color: #303741;
+  background: #242a31;
 }
 
 .user-message {
@@ -2219,9 +2219,9 @@ h1 {
 }
 
 .send-button {
-  min-width: 52px;
-  width: 52px;
-  height: 52px;
+  min-width: 40px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   border-radius: 50%;
   font-size: 0;
