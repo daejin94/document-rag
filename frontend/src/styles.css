@@ -372,6 +372,25 @@ textarea:focus {
 }
 
 .workspace {
+  /* 워크스페이스 전용 표면/텍스트 톤 — 라이트 기본값. 다크는 아래 [data-theme='dark'] .workspace 참고 */
+  --ws-bg-canvas: var(--parchment);
+  --ws-bg-surface: var(--canvas);
+  --ws-bg-deep: var(--pearl);
+  --ws-bg-input: var(--canvas);
+  --ws-bg-elevated: var(--canvas);
+  --ws-bg-card: var(--canvas);
+  --ws-bg-card-alt: var(--pearl);
+  --ws-bg-hover: var(--divider-soft);
+  --ws-bg-active: var(--pearl);
+  --ws-border: var(--hairline);
+  --ws-border-strong: rgba(0, 0, 0, 0.16);
+  --ws-border-hover: rgba(0, 0, 0, 0.24);
+  --ws-text-primary: var(--ink);
+  --ws-text-secondary: var(--ink-muted);
+  --ws-text-tertiary: var(--ink-soft);
+  --ws-accent: var(--action-blue);
+  --ws-danger-bg: #fdecea;
+  --ws-danger-fg: #b3261e;
   display: grid;
   grid-template-columns: 300px 1fr;
   height: 100vh;
@@ -886,9 +905,9 @@ h1 {
   gap: 4px;
   width: fit-content;
   padding: 3px;
-  border: 1px solid #303741;
+  border: 1px solid var(--ws-border);
   border-radius: 12px;
-  background: #171b21;
+  background: var(--ws-bg-deep);
 }
 
 .threshold-control {
@@ -896,7 +915,7 @@ h1 {
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #d7e0ea;
+  color: var(--ws-text-secondary);
 }
 
 /* 문서+AI 보충 모드에서는 엄격도가 적용되지 않아 흐리게 + 조작 불가로 표시한다. */
@@ -929,7 +948,7 @@ h1 {
 .threshold-control input[type='range']::-webkit-slider-runnable-track {
   height: 6px;
   border-radius: 3px;
-  background: linear-gradient(to right, #aeb8c4 var(--fill, 20%), #39424d var(--fill, 20%));
+  background: linear-gradient(to right, var(--ws-text-tertiary) var(--fill, 20%), var(--ws-border) var(--fill, 20%));
 }
 
 .threshold-control input[type='range']::-webkit-slider-thumb {
@@ -939,7 +958,7 @@ h1 {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #e7eef6;
+  background: var(--ws-text-primary);
   border: 0;
   box-shadow: none;
 }
@@ -947,14 +966,14 @@ h1 {
 .threshold-control input[type='range']::-moz-range-track {
   height: 6px;
   border-radius: 3px;
-  background: linear-gradient(to right, #aeb8c4 var(--fill, 20%), #39424d var(--fill, 20%));
+  background: linear-gradient(to right, var(--ws-text-tertiary) var(--fill, 20%), var(--ws-border) var(--fill, 20%));
 }
 
 .threshold-control input[type='range']::-moz-range-thumb {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #e7eef6;
+  background: var(--ws-text-primary);
   border: 0;
 }
 
@@ -969,18 +988,18 @@ h1 {
   padding: 5px 12px;
   border-radius: 9px;
   background: transparent;
-  color: #8794a3;
+  color: var(--ws-text-tertiary);
   font-size: 13px;
   cursor: pointer;
   transition: color 0.15s ease, background 0.15s ease;
 }
 
 .answer-mode-option:hover {
-  color: #d7e0ea;
+  color: var(--ws-text-secondary);
 }
 
 .answer-mode-option.active {
-  background: var(--action-blue-on-dark);
+  background: var(--ws-accent);
   color: #ffffff;
   font-weight: 600;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
@@ -1433,13 +1452,35 @@ h1 {
   }
 }
 
+/* 다크 모드일 때만 워크스페이스 표면/텍스트 톤을 다크 값으로 재정의한다 (라이트 기본값은 위 .workspace 참고) */
+[data-theme='dark'] .workspace {
+  --ws-bg-canvas: #14181d;
+  --ws-bg-surface: #1b2026;
+  --ws-bg-deep: #171b21;
+  --ws-bg-input: #15191f;
+  --ws-bg-elevated: #1d2228;
+  --ws-bg-card: #242a31;
+  --ws-bg-card-alt: #161b21;
+  --ws-bg-hover: #232a31;
+  --ws-bg-active: #252c35;
+  --ws-border: #303741;
+  --ws-border-strong: #3c4652;
+  --ws-border-hover: #53606d;
+  --ws-text-primary: #f3f6fb;
+  --ws-text-secondary: #dce5ef;
+  --ws-text-tertiary: #95a2af;
+  --ws-accent: var(--action-blue-on-dark);
+  --ws-danger-bg: #2a211f;
+  --ws-danger-fg: #ffd5c4;
+}
+
 /* Notebook-style workspace */
 .workspace {
   grid-template-columns: minmax(300px, 25vw) minmax(0, 1fr);
   gap: 0;
   padding: 0;
-  background: #14181d;
-  color: #eef3f8;
+  background: var(--ws-bg-canvas);
+  color: var(--ws-text-primary);
 }
 
 .workspace .brand-row,
@@ -1447,14 +1488,14 @@ h1 {
 .workspace .workspace-nav-title strong,
 .workspace .chat-heading h1,
 .workspace .studio-header h2 {
-  color: #f6f8fb;
+  color: var(--ws-text-primary);
 }
 
 .sidebar {
   gap: 12px;
   padding: 0 12px 12px;
-  border-right: 1px solid #303741;
-  background: #1b2026;
+  border-right: 1px solid var(--ws-border);
+  background: var(--ws-bg-surface);
 }
 
 .sidebar-head {
@@ -1464,7 +1505,7 @@ h1 {
   gap: 12px;
   min-height: 64px;
   padding: 0 4px;
-  border-bottom: 1px solid #303741;
+  border-bottom: 1px solid var(--ws-border);
 }
 
 .workspace .brand-row {
@@ -1499,13 +1540,13 @@ h1 {
 .workspace .icon-button {
   width: 36px;
   height: 36px;
-  border: 1px solid #3a434d;
-  background: #252b32;
-  color: #dfe8f2;
+  border: 1px solid var(--ws-border-strong);
+  background: var(--ws-bg-active);
+  color: var(--ws-text-secondary);
 }
 
 .workspace .icon-button:hover {
-  background: #303842;
+  background: var(--ws-bg-active);
 }
 
 .section-title-actions {
@@ -1556,10 +1597,10 @@ h1 {
   gap: 10px;
   min-height: 42px;
   padding: 0 12px;
-  border: 1px solid #303741;
+  border: 1px solid var(--ws-border);
   border-radius: 14px;
-  background: #15191f;
-  color: #8e9aa7;
+  background: var(--ws-bg-input);
+  color: var(--ws-text-tertiary);
   font-size: 13px;
 }
 
@@ -1568,14 +1609,14 @@ h1 {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  color: #9ba8b6;
+  color: var(--ws-text-tertiary);
   font-size: 12px;
 }
 
 .source-toolbar button {
   border: 0;
   background: transparent;
-  color: #f0f5fb;
+  color: var(--ws-text-primary);
   font-size: 12px;
   font-weight: 600;
 }
@@ -1606,20 +1647,20 @@ h1 {
 
 .document-row:hover,
 .project-row:hover {
-  background: #232a31;
+  background: var(--ws-bg-hover);
 }
 
 .checkline strong,
 .project-button strong,
 .member-row strong {
-  color: #f3f6fb;
+  color: var(--ws-text-primary);
   font-size: 13px;
 }
 
 .checkline small,
 .project-button small,
 .member-row small {
-  color: #95a2af;
+  color: var(--ws-text-tertiary);
 }
 
 .checkline input {
@@ -1634,7 +1675,7 @@ h1 {
 .project-section {
   margin-top: auto;
   padding-top: 12px;
-  border-top: 1px solid #303741;
+  border-top: 1px solid var(--ws-border);
 }
 
 .workspace .session-button {
@@ -1646,22 +1687,22 @@ h1 {
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
-  color: #dce5ef;
+  color: var(--ws-text-secondary);
   font-size: 13px;
   font-weight: 600;
   text-align: left;
 }
 
 .workspace .session-button:hover {
-  border-color: #303741;
-  background: #232a31;
-  color: #f5f8fc;
+  border-color: var(--ws-border);
+  background: var(--ws-bg-hover);
+  color: var(--ws-text-primary);
 }
 
 .workspace .session-button.active {
-  border-color: #3d4855;
-  background: #252c35;
-  color: #ffffff;
+  border-color: var(--ws-border-strong);
+  background: var(--ws-bg-active);
+  color: var(--ws-text-primary);
 }
 
 .project-row {
@@ -1670,8 +1711,8 @@ h1 {
 }
 
 .project-row.active {
-  border-color: #424d59;
-  background: #252c35;
+  border-color: var(--ws-border-strong);
+  background: var(--ws-bg-active);
 }
 
 .mobile-session-section {
@@ -1679,7 +1720,7 @@ h1 {
 }
 
 .main-panel {
-  background: #14181d;
+  background: var(--ws-bg-canvas);
 }
 
 .workspace-nav {
@@ -1687,8 +1728,8 @@ h1 {
   flex-wrap: wrap;
   min-height: 64px;
   padding: 10px 18px;
-  border-bottom: 1px solid #303741;
-  background: #171b21;
+  border-bottom: 1px solid var(--ws-border);
+  background: var(--ws-bg-deep);
   backdrop-filter: none;
 }
 
@@ -1701,20 +1742,20 @@ h1 {
 }
 
 .project-summary {
-  color: #95a2af;
+  color: var(--ws-text-tertiary);
   font-size: 13px;
 }
 
-.workspace .primary-button {
+[data-theme='dark'] .workspace .primary-button {
   background: #f8fbff;
   color: #15191f;
   font-weight: 700;
 }
 
-.workspace .ghost-button {
-  border-color: #3c4652;
+[data-theme='dark'] .workspace .ghost-button {
+  border-color: var(--ws-border-strong);
   background: transparent;
-  color: #e8f0f8;
+  color: var(--ws-text-secondary);
 }
 
 .workspace .action-button {
@@ -1733,10 +1774,10 @@ h1 {
 .project-controls select {
   height: 36px;
   min-width: 0;
-  border-color: #3c4652;
+  border-color: var(--ws-border-strong);
   border-radius: 10px;
-  background-color: #15191f;
-  color: #e8f0f8;
+  background-color: var(--ws-bg-input);
+  color: var(--ws-text-secondary);
   font-size: 13px;
 }
 
@@ -1755,8 +1796,8 @@ h1 {
 }
 
 .profile-trigger[aria-expanded="true"] {
-  border-color: #53606d;
-  background: #303842;
+  border-color: var(--ws-border-hover);
+  background: var(--ws-bg-active);
 }
 
 .profile-dropdown {
@@ -1768,9 +1809,9 @@ h1 {
   gap: 10px;
   width: 292px;
   padding: 14px;
-  border: 1px solid #303741;
+  border: 1px solid var(--ws-border);
   border-radius: 18px;
-  background: #20252b;
+  background: var(--ws-bg-elevated);
   box-shadow: rgba(0, 0, 0, 0.32) 0 18px 40px;
 }
 
@@ -1779,7 +1820,7 @@ h1 {
   justify-items: center;
   gap: 7px;
   padding: 8px 8px 12px;
-  color: #f5f8fc;
+  color: var(--ws-text-primary);
   text-align: center;
 }
 
@@ -1789,16 +1830,16 @@ h1 {
   width: 70px;
   height: 70px;
   margin-bottom: 4px;
-  border: 2px solid #53606d;
+  border: 2px solid var(--ws-border-hover);
   border-radius: 50%;
-  background: #303842;
-  color: #e8f0f8;
+  background: var(--ws-bg-active);
+  color: var(--ws-text-secondary);
 }
 
 .profile-card strong {
   max-width: 100%;
   overflow: hidden;
-  color: #f6f8fb;
+  color: var(--ws-text-primary);
   font-size: 17px;
   font-weight: 700;
   text-overflow: ellipsis;
@@ -1809,7 +1850,7 @@ h1 {
 .profile-card small {
   max-width: 100%;
   overflow: hidden;
-  color: #aab6c3;
+  color: var(--ws-text-tertiary);
   font-size: 13px;
   line-height: 1.45;
   text-overflow: ellipsis;
@@ -1817,7 +1858,7 @@ h1 {
 }
 
 .profile-card small {
-  color: #8f9baa;
+  color: var(--ws-text-tertiary);
 }
 
 .profile-actions {
@@ -1836,8 +1877,8 @@ h1 {
   padding: 0 12px;
   border: 0;
   border-radius: 999px;
-  background: #171b21;
-  color: #dce5ef;
+  background: var(--ws-bg-deep);
+  color: var(--ws-text-secondary);
   font-size: 13px;
   font-weight: 600;
   text-align: center;
@@ -1845,17 +1886,17 @@ h1 {
 }
 
 .profile-dropdown .profile-action:hover {
-  background: #252c35;
-  color: #ffffff;
+  background: var(--ws-bg-active);
+  color: var(--ws-text-primary);
 }
 
 .profile-dropdown .profile-logout {
-  color: #f0f5fb;
+  color: var(--ws-text-primary);
 }
 
 .profile-dropdown .profile-logout:hover {
-  background: #3a2622;
-  color: #ffd5c4;
+  background: var(--ws-danger-bg);
+  color: var(--ws-danger-fg);
 }
 
 .project-overview {
@@ -1866,7 +1907,7 @@ h1 {
 
 .project-overview-desc {
   margin: 0;
-  color: #8f9baa;
+  color: var(--ws-text-tertiary);
   font-size: 13px;
 }
 
@@ -1877,7 +1918,7 @@ h1 {
 
 .telegram-link-desc {
   margin: 0;
-  color: #8f9baa;
+  color: var(--ws-text-tertiary);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -1918,7 +1959,7 @@ h1 {
 }
 
 .telegram-guide {
-  border: 1px solid #303741;
+  border: 1px solid var(--ws-border);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.03);
   padding: 0 14px;
@@ -1952,7 +1993,7 @@ h1 {
   padding-left: 20px;
   display: grid;
   gap: 8px;
-  color: #b3becd;
+  color: var(--ws-text-tertiary);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -1969,7 +2010,7 @@ h1 {
   margin: 0 0 12px;
   padding-top: 10px;
   border-top: 1px solid #2a2f38;
-  color: #8f9baa;
+  color: var(--ws-text-tertiary);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -1993,7 +2034,7 @@ h1 {
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
-  border: 1px solid #303741;
+  border: 1px solid var(--ws-border);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.04);
 }
@@ -2010,7 +2051,7 @@ h1 {
 }
 
 .binding-info small {
-  color: #8f9baa;
+  color: var(--ws-text-tertiary);
   font-size: 12px;
 }
 
@@ -2028,23 +2069,23 @@ h1 {
   gap: 12px;
   width: 100%;
   padding: 12px 14px;
-  border: 1px solid #303741;
+  border: 1px solid var(--ws-border);
   border-radius: 14px;
-  background: #1b2026;
-  color: #e8f0f8;
+  background: var(--ws-bg-surface);
+  color: var(--ws-text-secondary);
   text-align: left;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
 
 .project-overview-row:hover {
-  border-color: #53606d;
-  background: #232a32;
+  border-color: var(--ws-border-hover);
+  background: var(--ws-bg-hover);
 }
 
 .project-overview-row.active {
   border-color: #4d7bd6;
-  background: #222b3a;
+  background: var(--ws-bg-active);
 }
 
 .project-overview-info {
@@ -2055,7 +2096,7 @@ h1 {
 
 .project-overview-info strong {
   overflow: hidden;
-  color: #f6f8fb;
+  color: var(--ws-text-primary);
   font-size: 14px;
   font-weight: 700;
   text-overflow: ellipsis;
@@ -2064,7 +2105,7 @@ h1 {
 
 .project-overview-info small {
   overflow: hidden;
-  color: #8f9baa;
+  color: var(--ws-text-tertiary);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2092,8 +2133,8 @@ h1 {
 .workspace .error-banner {
   margin: 10px 18px 0;
   border-color: #4c3e35;
-  background: #2a211f;
-  color: #ffd5c4;
+  background: var(--ws-danger-bg);
+  color: var(--ws-danger-fg);
 }
 
 .conversation-layout {
@@ -2106,9 +2147,9 @@ h1 {
 .studio-panel {
   min-height: 0;
   height: 100%;
-  border: 1px solid #303741;
+  border: 1px solid var(--ws-border);
   border-radius: 12px;
-  background: #1d2228;
+  background: var(--ws-bg-elevated);
 }
 
 .answer-panel {
@@ -2123,7 +2164,7 @@ h1 {
 .chat-heading {
   align-items: center;
   padding: 0 16px;
-  border-bottom: 1px solid #303741;
+  border-bottom: 1px solid var(--ws-border);
 }
 
 .chat-heading h1 {
@@ -2141,9 +2182,9 @@ h1 {
   max-width: 180px;
   min-height: 34px;
   padding: 0 16px;
-  border-color: #38424d;
-  background: #252b32;
-  color: #dce5ef;
+  border-color: var(--ws-border-strong);
+  background: var(--ws-bg-active);
+  color: var(--ws-text-secondary);
 }
 
 .chat-thread {
@@ -2151,49 +2192,49 @@ h1 {
 }
 
 .chat-empty-state {
-  color: #9ba8b6;
+  color: var(--ws-text-tertiary);
 }
 
 .chat-empty-state strong {
-  color: #f3f6fb;
+  color: var(--ws-text-primary);
   font-size: 19px;
   font-weight: 700;
 }
 
 .chat-message {
   max-width: min(860px, 92%);
-  border-color: #303741;
+  border-color: var(--ws-border);
   border-radius: 14px;
-  background: #242a31;
+  background: var(--ws-bg-card);
 }
 
 .chat-message strong {
-  color: #f5f8fc;
+  color: var(--ws-text-primary);
 }
 
 .chat-message p,
 .markdown-content {
-  color: #e7eef6;
+  color: var(--ws-text-secondary);
   font-size: 15px;
 }
 
 .assistant-message {
-  border-color: #303741;
-  background: #242a31;
+  border-color: var(--ws-border);
+  background: var(--ws-bg-card);
 }
 
 .user-message {
-  border-color: #303741;
-  background: #161b21;
+  border-color: var(--ws-border);
+  background: var(--ws-bg-card-alt);
 }
 
 .pending-message {
-  border-color: #303741;
-  background: #242a31;
+  border-color: var(--ws-border);
+  background: var(--ws-bg-card);
 }
 
 .answer-progress span {
-  color: #b9c4d0;
+  color: var(--ws-text-tertiary);
 }
 
 .composer-controls {
@@ -2205,9 +2246,9 @@ h1 {
   gap: 10px;
   margin: 0 16px 16px;
   padding: 8px;
-  border-color: #363f4a;
+  border-color: var(--ws-border-strong);
   border-radius: 18px;
-  background: #171b21;
+  background: var(--ws-bg-deep);
 }
 
 .chat-composer textarea {
@@ -2217,11 +2258,11 @@ h1 {
   border: 0;
   border-radius: 12px;
   background: transparent;
-  color: #f4f8fc;
+  color: var(--ws-text-primary);
 }
 
 .chat-composer textarea::placeholder {
-  color: #8794a3;
+  color: var(--ws-text-tertiary);
 }
 
 .send-button {
@@ -2272,14 +2313,14 @@ h1 {
   padding: 10px 12px;
   border-radius: 8px;
   background: linear-gradient(90deg, #26335f, #1d4b38);
-  color: #f3f8ff;
+  color: var(--ws-text-primary);
   font-size: 13px;
 }
 
 .similarity-summary {
-  background: #171b21;
-  border: 1px solid #303741;
-  color: #cbd6e2;
+  background: var(--ws-bg-deep);
+  border: 1px solid var(--ws-border);
+  color: var(--ws-text-secondary);
   line-height: 1.45;
 }
 
@@ -2298,7 +2339,7 @@ h1 {
   padding: 0 10px;
   border: 1px solid transparent;
   border-radius: 8px;
-  color: #f3f6fb;
+  color: var(--ws-text-primary);
   font-size: 13px;
   font-weight: 700;
   text-align: left;
@@ -2349,14 +2390,14 @@ h1 {
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
-  color: #f1f5fa;
+  color: var(--ws-text-primary);
   text-align: left;
 }
 
 .studio-session:hover,
 .studio-session.active {
-  border-color: #3a434d;
-  background: #252b32;
+  border-color: var(--ws-border-strong);
+  background: var(--ws-bg-active);
 }
 
 .studio-session span {
@@ -2368,76 +2409,76 @@ h1 {
 }
 
 .studio-session small {
-  color: #94a1af;
+  color: var(--ws-text-tertiary);
   font-size: 12px;
 }
 
 .source-item {
   padding: 12px;
-  border-color: #303741;
+  border-color: var(--ws-border);
   border-radius: 8px;
-  background: #171b21;
+  background: var(--ws-bg-deep);
 }
 
 .source-item strong {
-  color: #f3f7fb;
+  color: var(--ws-text-primary);
   font-size: 13px;
 }
 
 .source-item small {
-  color: #8dbdff;
+  color: var(--action-blue-on-dark);
 }
 
 .source-item p,
 .workspace .empty-text {
-  color: #9aa6b3;
+  color: var(--ws-text-tertiary);
   font-size: 13px;
 }
 
 .detail-strip {
   padding: 12px;
-  border-color: #303741;
+  border-color: var(--ws-border);
   border-radius: 8px;
-  background: #171b21;
+  background: var(--ws-bg-deep);
 }
 
 .detail-strip strong {
-  color: #f4f8fc;
+  color: var(--ws-text-primary);
 }
 
 .detail-strip span {
-  border-color: #38424d;
-  background: #252b32;
-  color: #d8e1eb;
+  border-color: var(--ws-border-strong);
+  background: var(--ws-bg-active);
+  color: var(--ws-text-secondary);
 }
 
 .workspace .modal-panel {
-  border-color: #303741;
-  background: #1d2228;
-  color: #eef3f8;
+  border-color: var(--ws-border);
+  background: var(--ws-bg-elevated);
+  color: var(--ws-text-primary);
 }
 
 .workspace .modal-header h2,
 .workspace .delete-confirm p {
-  color: #f6f8fb;
+  color: var(--ws-text-primary);
 }
 
 .workspace label,
 .workspace .delete-confirm small {
-  color: #aab6c3;
+  color: var(--ws-text-tertiary);
 }
 
 .workspace input,
 .workspace select,
 .workspace textarea {
-  border-color: #3b4652;
-  background-color: #15191f;
-  color: #f5f8fc;
+  border-color: var(--ws-border-strong);
+  background-color: var(--ws-bg-input);
+  color: var(--ws-text-primary);
 }
 
 .workspace .member-row {
-  border-color: #3b4652;
-  background: #15191f;
+  border-color: var(--ws-border-strong);
+  background: var(--ws-bg-input);
 }
 
 .workspace .modal-form input,
@@ -2447,7 +2488,7 @@ h1 {
 }
 
 .workspace select:hover {
-  border-color: #4b5663;
+  border-color: var(--ws-border-hover);
 }
 
 .workspace select:focus {
@@ -2469,17 +2510,17 @@ h1 {
   width: 100%;
   height: 44px;
   padding: 0 14px;
-  border: 1px solid #3b4652;
+  border: 1px solid var(--ws-border-strong);
   border-radius: 12px;
-  background: #15191f;
-  color: #f5f8fc;
+  background: var(--ws-bg-input);
+  color: var(--ws-text-primary);
   font-size: 14px;
   cursor: pointer;
   transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
 }
 
 .dropdown-trigger:hover:not(:disabled) {
-  border-color: #4b5663;
+  border-color: var(--ws-border-hover);
 }
 
 .dropdown-trigger.is-open,
@@ -2495,7 +2536,7 @@ h1 {
 }
 
 .dropdown-trigger.is-placeholder .dropdown-value {
-  color: #8a94a0;
+  color: var(--ws-text-tertiary);
 }
 
 .dropdown-value {
@@ -2506,7 +2547,7 @@ h1 {
 
 .dropdown-chevron {
   flex: 0 0 auto;
-  color: #8b96a3;
+  color: var(--ws-text-tertiary);
   transition: transform 0.18s ease;
 }
 
@@ -2525,9 +2566,9 @@ h1 {
   padding: 6px;
   overflow-y: auto;
   list-style: none;
-  border: 1px solid #38424d;
+  border: 1px solid var(--ws-border-strong);
   border-radius: 14px;
-  background: #1d2228;
+  background: var(--ws-bg-elevated);
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.5);
   animation: dropdown-pop 0.14s ease;
 }
@@ -2553,7 +2594,7 @@ h1 {
   border: 0;
   border-radius: 9px;
   background: transparent;
-  color: #dce5ef;
+  color: var(--ws-text-secondary);
   font-size: 14px;
   text-align: left;
   cursor: pointer;
@@ -2561,11 +2602,11 @@ h1 {
 }
 
 .dropdown-option.is-active {
-  background: #2a323b;
+  background: var(--ws-bg-active);
 }
 
 .dropdown-option.is-selected {
-  color: #ffffff;
+  color: var(--ws-text-primary);
   font-weight: 600;
 }
 
@@ -2652,7 +2693,7 @@ h1 {
   .sidebar {
     height: auto;
     border-right: 0;
-    border-bottom: 1px solid #303741;
+    border-bottom: 1px solid var(--ws-border);
   }
 
   .project-section {

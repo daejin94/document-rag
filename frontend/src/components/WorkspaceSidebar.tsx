@@ -8,6 +8,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import type { ChatSession, DocumentItem } from '../types';
+import { ThemeToggle } from './ThemeToggle';
 
 interface WorkspaceSidebarProps {
   documents: DocumentItem[];
@@ -51,6 +52,7 @@ export function WorkspaceSidebar({
         <div className="brand-row">
           <BookOpenText size={22} />
           <span>DocQ</span>
+          <ThemeToggle className="brand-row-theme-toggle" />
         </div>
       </div>
 
