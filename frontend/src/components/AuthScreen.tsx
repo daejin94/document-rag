@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { BookOpenText, Bot, Check, RefreshCw, UserPlus } from 'lucide-react';
 import { fetchOAuthProviders, login, signup } from '../api';
+import { ThemeToggle } from './ThemeToggle';
 
 type AuthMode = 'login' | 'signup';
 
@@ -80,6 +81,7 @@ export function AuthScreen({ onAuthenticated, sessionExpired = false, oauthFeedb
         <div className="brand-row">
           <BookOpenText size={24} />
           <span>DocQ</span>
+          <ThemeToggle className="brand-row-theme-toggle" />
         </div>
         <div className="segmented">
           <button className={mode === 'login' ? 'active' : ''} onClick={() => switchMode('login')} type="button">

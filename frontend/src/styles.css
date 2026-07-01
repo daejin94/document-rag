@@ -94,6 +94,12 @@ button {
   letter-spacing: 0;
 }
 
+.brand-row-theme-toggle {
+  width: 36px;
+  height: 36px;
+  margin-left: auto;
+}
+
 .segmented {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -3150,8 +3156,9 @@ h1 {
 
 /* ===== 로그인 · 관리자 다크 테마 (프로젝트 화면과 통일) ===== */
 /* 대부분의 규칙이 변수를 참조하므로, 스코프 안에서 팔레트만 다크로 재정의하면 전체가 전환된다 */
-.auth-shell,
-.admin-shell {
+/* data-theme='dark'일 때만 적용 — light일 땐 :root의 라이트 팔레트가 그대로 살아난다 */
+[data-theme='dark'] .auth-shell,
+[data-theme='dark'] .admin-shell {
   --parchment: #14181d;
   --canvas: #1b2026;
   --pearl: #20252b;
@@ -3164,12 +3171,12 @@ h1 {
 }
 
 /* 입력 필드: 하드코딩된 밝은 테두리를 다크로, 배경은 워크스페이스 입력과 동일하게 */
-.auth-shell input,
-.auth-shell select,
-.auth-shell textarea,
-.admin-shell input,
-.admin-shell select,
-.admin-shell textarea {
+[data-theme='dark'] .auth-shell input,
+[data-theme='dark'] .auth-shell select,
+[data-theme='dark'] .auth-shell textarea,
+[data-theme='dark'] .admin-shell input,
+[data-theme='dark'] .admin-shell select,
+[data-theme='dark'] .admin-shell textarea {
   border-color: var(--hairline);
   background: #15191f;
   color: var(--ink);
@@ -3178,16 +3185,16 @@ h1 {
 }
 
 /* 주요 버튼: 워크스페이스와 동일한 밝은 알약형 */
-.auth-shell .primary-button,
-.admin-shell .primary-button {
+[data-theme='dark'] .auth-shell .primary-button,
+[data-theme='dark'] .admin-shell .primary-button {
   background: #f8fbff;
   color: #15191f;
   font-weight: 700;
 }
 
 /* 보조 버튼: 워크스페이스와 동일한 다크 외곽선 */
-.auth-shell .ghost-button,
-.admin-shell .ghost-button {
+[data-theme='dark'] .auth-shell .ghost-button,
+[data-theme='dark'] .admin-shell .ghost-button {
   border-color: #3c4652;
   background: transparent;
   color: #e8f0f8;
@@ -3200,28 +3207,28 @@ h1 {
 }
 
 /* 로그인 입력 카드: 반투명 다크 */
-.auth-panel {
+[data-theme='dark'] .auth-panel {
   background: rgba(20, 24, 29, 0.82);
 }
 
 /* 관리자: 어두운 배경에서 파랑 강조색 대비 보정 */
-.admin-shell .admin-badge {
+[data-theme='dark'] .admin-shell .admin-badge {
   background: rgba(41, 151, 255, 0.16);
   color: var(--action-blue-on-dark);
 }
 
-.admin-shell .admin-tab.is-active {
+[data-theme='dark'] .admin-shell .admin-tab.is-active {
   color: var(--action-blue-on-dark);
 }
 
-.admin-shell .admin-tab.is-active::after {
+[data-theme='dark'] .admin-shell .admin-tab.is-active::after {
   background: var(--action-blue-on-dark);
 }
 
-.admin-shell .admin-panel .admin-table tbody tr:hover {
+[data-theme='dark'] .admin-shell .admin-panel .admin-table tbody tr:hover {
   background: rgba(255, 255, 255, 0.04);
 }
 
-.admin-shell .admin-table tbody tr.is-selected {
+[data-theme='dark'] .admin-shell .admin-table tbody tr.is-selected {
   background: rgba(41, 151, 255, 0.12);
 }

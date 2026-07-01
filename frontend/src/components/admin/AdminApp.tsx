@@ -3,6 +3,7 @@ import { ProjectManagement } from './ProjectManagement';
 import { UsageDashboard } from './UsageDashboard';
 import { UserApproval } from './UserApproval';
 import { UserManagement } from './UserManagement';
+import { ThemeToggle } from '../ThemeToggle';
 
 type AdminTab = 'usage' | 'approvals' | 'users' | 'projects';
 
@@ -38,6 +39,7 @@ export function AdminApp({ token, onLogout }: { token: string; onLogout: () => v
         </div>
         <div className="admin-header-right">
           <span className="admin-muted">{email}</span>
+          <ThemeToggle />
           <button type="button" className="ghost-button" onClick={onLogout}>
             로그아웃
           </button>
