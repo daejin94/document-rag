@@ -569,10 +569,10 @@ export function WorkspaceMain({
             <div
               className={`threshold-control${answerMode === 'HYBRID' ? ' disabled' : ''}`}
               title={answerMode === 'HYBRID'
-                ? '문서 + AI 보충 모드에서는 문서가 부족해도 AI가 답하므로 엄격도가 적용되지 않습니다.'
-                : '검색된 문서를 답변 근거로 채택하는 최소 유사도입니다. 높일수록 더 정확히 일치하는 문서만 사용합니다.'}
+                ? '문서 + AI 보충 모드에서는 문서가 부족해도 AI가 답하므로 문서 일치 기준이 적용되지 않습니다.'
+                : '낮음: 살짝만 관련 있어도 답변에 사용합니다. 높음: 질문과 확실히 일치하는 문서만 사용합니다.'}
             >
-              <label htmlFor="threshold-range">문서 엄격도</label>
+              <label htmlFor="threshold-range">문서 일치 기준</label>
               <input
                 id="threshold-range"
                 type="range"

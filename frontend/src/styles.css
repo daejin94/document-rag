@@ -890,7 +890,7 @@ h1 {
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: var(--ink);
+  color: #d7e0ea;
 }
 
 /* 문서+AI 보충 모드에서는 엄격도가 적용되지 않아 흐리게 + 조작 불가로 표시한다. */
@@ -954,7 +954,7 @@ h1 {
 
 .threshold-value {
   min-width: 38px;
-  opacity: 0.65;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
