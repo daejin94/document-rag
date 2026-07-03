@@ -1,5 +1,17 @@
 # 작업 완료
 
+## 문서 처리 완료 토스트 알림 + 처리 중 인디케이터 (2026-07-03)
+
+- 시작일: 2026-07-03
+- 완료일: 2026-07-03
+- 목적: 비동기 업로드 전환 후 처리 진행 상황 가시성 보완. 사이드바 문서 상태가 raw 텍스트(`PROCESSING`)라 눈에 안 띄고, 처리 완료/실패 알림이 없었음.
+- 현재 상태: 완료.
+  - 사이드바 문서 상태 배지(`DocumentStatusBadge`): UPLOADED/PROCESSING → 파란색 스피너(lucide `Loader2` + 기존 `.spin`) + "처리 중", FAILED → 빨간 경고 아이콘 + "실패", COMPLETED → 회색 "완료". 주의: `.checkline span { display: grid }`가 배지 span까지 잡아 줄바꿈되는 문제가 있어 `.checkline span.doc-status` 선택자로 `inline-flex` 우선 적용.
+  - 토스트 알림: `App.tsx` Workspace에 경량 토스트 스택(자체 구현, UI 라이브러리 미추가). 폴링/새로고침으로 문서 상태가 처리 중 → `COMPLETED`/`FAILED`로 전이하면 우측 하단에 완료(초록 체크)/실패(빨강 경고) 토스트 표시. 5초 자동 소멸 + X 버튼 수동 닫기. 상태 전이 감지는 `documentStatusesRef`(Map documentId→status)로 이전 스냅샷과 비교 — 프로젝트 전환 시 다른 문서 id라 오탐 없음.
+  - 라이트/다크 모두 기존 `--ws-*` 변수 사용이라 테마 자동 대응.
+- 검증: `npm run build`(tsc+vite) 통과. 실제 스택에서 브라우저로 확인 — 72KB 문서 업로드 시 스피너 "처리 중" 표시 → 완료 시 "완료" 전환, 소형 문서 업로드 시 "'토스트 알림 테스트' 문서 처리가 완료되었습니다." 토스트 표시 및 자동 소멸 확인.
+- 관련 파일: frontend `src/App.tsx`, `src/components/WorkspaceSidebar.tsx`, `src/styles.css`
+
 ## 문서 업로드 파이프라인 비동기 전환 + 트랜잭션 경계 정리 (2026-07-03)
 
 - 시작일: 2026-07-03
