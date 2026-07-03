@@ -1,5 +1,18 @@
 # 작업 완료
 
+## 문서 업로드 파이프라인 비동기 전환 + 트랜잭션 경계 정리 (2026-07-03)
+
+- 시작일: 2026-07-03
+- 완료일: 2026-07-03
+- 목적: `DocumentService.upload`가 추출→chunk→embedding→저장을 요청 스레드에서 동기 실행해 대용량 문서(특히 OCR)에서 HTTP 타임아웃 위험이 있었고, 트랜잭션 경계가 없어 중간 실패 시 chunk 부분 저장/`PROCESSING` 고착이 가능했던 문제 해결.
+- 현재 상태: 완료.
+  - 백엔드: 업로드는 파일 저장 + 문서 record 생성(`UPLOADED`)까지만 동기로 하고 즉시 응답. 추출/chunk/embedding은 신규 `DocumentProcessor.process`가 `@Async`(전용 executor `documentProcessingExecutor`, 신규 `DocumentAsyncConfig`)로 처리. embedding을 모두 끝낸 뒤 chunk 저장+`COMPLETED` 전이를 `TransactionTemplate` 단일 트랜잭션으로 커밋(부분 저장 방지, OpenAI 호출 중 DB 커넥션 미점유). 실패 시 문서를 재조회해 존재할 때만 `FAILED` 기록(처리 중 삭제 대비). 비동기 접수 자체가 실패하면 `FAILED` 기록 후 503. 문서 상세 응답에 `errorMessage` 추가(`DocumentEntity` getter 신설).
+  - 프론트: 처리 중(`UPLOADED`/`PROCESSING`) 문서가 있는 동안 3초 간격으로 문서 목록 폴링(프로젝트 전환 시 이전 프로젝트 응답 폐기), 문서 상세 스트립에 `FAILED` 사유 표시, `DocumentDetail` 타입에 `errorMessage` 추가.
+  - 문서: docs/feat/document-upload.md(흐름 동기/비동기 분리 서술), docs/api.md(업로드 응답 `UPLOADED` + 폴링 안내, 상세 응답 `errorMessage`), CLAUDE.md `document` 패키지 설명 갱신.
+- 검증: backend `./gradlew build`(테스트 포함) 통과, frontend `npm run build`(tsc+vite) 통과. E2E(실제 업로드→폴링→COMPLETED)는 로컬 DB/Docker 미기동 + OpenAI 호출 비용 문제로 미실시.
+- 참고: 이 PC에서 gradlew가 `Unable to establish loopback connection`으로 실패하면 `JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=C:\Temp` 설정 후 빌드(한글 사용자 경로 + JDK17 UDS 이슈).
+- 관련 파일: backend `document/DocumentProcessor.java`(신규), `document/DocumentAsyncConfig.java`(신규), `document/DocumentService.java`, `document/DocumentEntity.java`, `document/DocumentDetailResponse.java`; frontend `src/App.tsx`, `src/types.ts`, `src/components/WorkspaceMain.tsx`; docs `feat/document-upload.md`, `api.md`; CLAUDE.md
+
 ## 라이트 모드 지원 (2026-07-01)
 
 - 시작일: 2026-07-01
