@@ -1312,6 +1312,92 @@ h1 {
   }
 }
 
+/* 사이드바 문서 상태 배지 (.checkline span의 display: grid보다 우선해야 함) */
+.doc-status,
+.checkline span.doc-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  vertical-align: text-bottom;
+}
+
+.doc-status.processing {
+  color: var(--ws-accent);
+}
+
+.doc-status.failed {
+  color: var(--ws-danger-fg);
+}
+
+.doc-status.completed {
+  color: var(--ws-text-tertiary);
+  font-weight: 600;
+}
+
+/* 문서 처리 완료/실패 토스트 알림 */
+.toast-stack {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 60;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  max-width: 360px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--ws-bg-elevated);
+  border: 1px solid var(--ws-border-strong);
+  color: var(--ws-text-primary);
+  font-size: 13.5px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+  animation: toast-in 0.18s ease-out;
+}
+
+.toast-success > svg {
+  color: #1a7f37;
+  flex-shrink: 0;
+}
+
+.toast-error > svg {
+  color: var(--ws-danger-fg);
+  flex-shrink: 0;
+}
+
+.toast-close {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: none;
+  padding: 2px;
+  margin-left: 2px;
+  cursor: pointer;
+  color: var(--ws-text-tertiary);
+}
+
+.toast-close:hover {
+  color: var(--ws-text-primary);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes upload-progress {
   0% {
     transform: translateX(-110%);

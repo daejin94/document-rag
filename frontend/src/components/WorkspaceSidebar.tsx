@@ -1,14 +1,36 @@
 import {
+  AlertTriangle,
   BookOpenText,
   FileText,
+  Loader2,
   MessageSquare,
   Plus,
   RefreshCw,
   Search,
   Trash2,
 } from 'lucide-react';
-import type { ChatSession, DocumentItem } from '../types';
+import type { ChatSession, DocumentItem, DocumentStatus } from '../types';
 import { ThemeToggle } from './ThemeToggle';
+
+function DocumentStatusBadge({ status }: { status: DocumentStatus }) {
+  if (status === 'UPLOADED' || status === 'PROCESSING') {
+    return (
+      <span className="doc-status processing">
+        <Loader2 className="spin" size={12} />
+        처리 중
+      </span>
+    );
+  }
+  if (status === 'FAILED') {
+    return (
+      <span className="doc-status failed">
+        <AlertTriangle size={12} />
+        실패
+      </span>
+    );
+  }
+  return <span className="doc-status completed">완료</span>;
+}
 
 interface WorkspaceSidebarProps {
   documents: DocumentItem[];
@@ -100,7 +122,9 @@ export function WorkspaceSidebar({
                   />
                   <span>
                     <strong>{document.title}</strong>
-                    <small>{document.status} · {document.originalFileName}</small>
+                    <small>
+                      <DocumentStatusBadge status={document.status} /> · {document.originalFileName}
+                    </small>
                   </span>
                 </label>
                 <div className="row-tools">

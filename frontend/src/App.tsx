@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import {
   addProjectMember,
   createProject,
@@ -31,6 +32,7 @@ import type {
   ChatSession,
   DocumentDetail,
   DocumentItem,
+  DocumentStatus,
   Project,
   ProjectMember,
   ProjectRole,
@@ -38,7 +40,14 @@ import type {
 
 const tokenKey = 'document-rag-token';
 const typewriterDelayMs = 14;
+const toastDurationMs = 5000;
 type AnswerStatus = 'idle' | 'waiting' | 'typing';
+
+interface Toast {
+  id: number;
+  type: 'success' | 'error';
+  message: string;
+}
 
 function decodeToken(token: string): { email?: string; role?: string } {
   try {
@@ -236,6 +245,41 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
   useEffect(() => {
     currentProjectIdRef.current = currentProjectId;
   }, [currentProjectId]);
+
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastIdRef = useRef(0);
+
+  function pushToast(type: Toast['type'], message: string) {
+    const id = ++toastIdRef.current;
+    setToasts((current) => [...current, { id, type, message }]);
+    window.setTimeout(() => {
+      setToasts((current) => current.filter((toast) => toast.id !== id));
+    }, toastDurationMs);
+  }
+
+  function dismissToast(id: number) {
+    setToasts((current) => current.filter((toast) => toast.id !== id));
+  }
+
+  const documentStatusesRef = useRef<Map<number, DocumentStatus>>(new Map());
+  useEffect(() => {
+    // 폴링/새로고침으로 문서 상태가 처리 중 → 완료/실패로 바뀌면 토스트로 알린다
+    const previous = documentStatusesRef.current;
+    for (const document of documents) {
+      const prevStatus = previous.get(document.documentId);
+      if (prevStatus !== 'UPLOADED' && prevStatus !== 'PROCESSING') {
+        continue;
+      }
+      if (document.status === 'COMPLETED') {
+        pushToast('success', `'${document.title}' 문서 처리가 완료되었습니다.`);
+      } else if (document.status === 'FAILED') {
+        pushToast('error', `'${document.title}' 문서 처리에 실패했습니다.`);
+      }
+    }
+    documentStatusesRef.current = new Map(
+      documents.map((document) => [document.documentId, document.status]),
+    );
+  }, [documents]);
 
   useEffect(() => {
     // 업로드 후 백그라운드 처리(추출/chunk/embedding) 중인 문서가 있는 동안 목록을 주기적으로 갱신한다
@@ -667,6 +711,20 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
             onRemoveMember={removeMember}
           />
         </Modal>
+      )}
+
+      {toasts.length > 0 && (
+        <div className="toast-stack">
+          {toasts.map((toast) => (
+            <div className={`toast toast-${toast.type}`} key={toast.id} role="status">
+              {toast.type === 'success' ? <CheckCircle2 size={17} /> : <AlertTriangle size={17} />}
+              <span>{toast.message}</span>
+              <button className="toast-close" onClick={() => dismissToast(toast.id)} title="닫기" type="button">
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
       )}
     </main>
   );
