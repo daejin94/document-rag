@@ -130,6 +130,10 @@ public class DocumentEntity {
         return status;
     }
 
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }

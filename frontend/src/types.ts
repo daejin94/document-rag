@@ -93,6 +93,7 @@ export interface DocumentItem {
 
 export interface DocumentDetail extends DocumentItem {
   chunkCount: number;
+  errorMessage: string | null;
 }
 
 export interface Source {

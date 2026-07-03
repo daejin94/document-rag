@@ -277,9 +277,11 @@ Content-Type: multipart/form-data
 {
   "documentId": 1,
   "title": "Spring Security Guide",
-  "status": "COMPLETED"
+  "status": "UPLOADED"
 }
 ```
+
+업로드는 접수 즉시 응답하고, 추출/chunk/embedding은 백그라운드에서 처리된다. 문서 목록/상세를 폴링해 `PROCESSING → COMPLETED | FAILED` 전이를 확인한다. 실패 사유는 문서 상세의 `errorMessage`로 확인한다.
 
 ### 문서 목록
 
@@ -318,6 +320,7 @@ Authorization: Bearer <ACCESS_TOKEN>
   "originalFileName": "spring-security-guide.md",
   "status": "COMPLETED",
   "chunkCount": 3,
+  "errorMessage": null,
   "createdAt": "2026-05-15T00:00:00Z"
 }
 ```

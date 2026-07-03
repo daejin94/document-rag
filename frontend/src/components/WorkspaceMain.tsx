@@ -650,6 +650,9 @@ export function WorkspaceMain({
               <span>{detail.originalFileName}</span>
               <span>{detail.status}</span>
               <span>{detail.chunkCount} chunks</span>
+              {detail.status === 'FAILED' && detail.errorMessage && (
+                <span className="error-text">{detail.errorMessage}</span>
+              )}
             </section>
           )}
         </aside>

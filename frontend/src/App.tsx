@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
   addProjectMember,
   createProject,
@@ -231,6 +231,37 @@ function Workspace({ token, onLogout }: { token: string; onLogout: () => void })
     void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const currentProjectIdRef = useRef(currentProjectId);
+  useEffect(() => {
+    currentProjectIdRef.current = currentProjectId;
+  }, [currentProjectId]);
+
+  useEffect(() => {
+    // 업로드 후 백그라운드 처리(추출/chunk/embedding) 중인 문서가 있는 동안 목록을 주기적으로 갱신한다
+    if (!currentProjectId) {
+      return;
+    }
+    const hasPending = documents.some(
+      (document) => document.status === 'UPLOADED' || document.status === 'PROCESSING',
+    );
+    if (!hasPending) {
+      return;
+    }
+    const projectId = currentProjectId;
+    const timer = window.setTimeout(async () => {
+      try {
+        const items = await fetchDocuments(token, projectId);
+        // 폴링 응답이 돌아오기 전에 프로젝트를 전환했으면 결과를 버린다
+        if (currentProjectIdRef.current === projectId) {
+          setDocuments(items);
+        }
+      } catch {
+        // 폴링 실패는 무시하고 다음 갱신 주기에서 재시도한다
+      }
+    }, 3000);
+    return () => window.clearTimeout(timer);
+  }, [documents, currentProjectId, token]);
 
   async function selectProject(projectId: number) {
     setError('');

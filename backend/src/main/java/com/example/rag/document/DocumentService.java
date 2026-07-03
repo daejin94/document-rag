@@ -1,13 +1,9 @@
 package com.example.rag.document;
 
 import com.example.rag.common.ApiException;
-import com.example.rag.llm.EmbedResult;
-import com.example.rag.llm.EmbeddingModelClient;
 import com.example.rag.project.ProjectEntity;
 import com.example.rag.project.ProjectRepository;
 import com.example.rag.project.ProjectService;
-import com.example.rag.usage.TokenUsageRecorder;
-import com.example.rag.usage.TokenUsageType;
 import com.example.rag.user.User;
 import com.example.rag.user.UserRepository;
 import org.springframework.http.HttpStatus;
@@ -25,12 +21,8 @@ public class DocumentService {
     private final ProjectService projectService;
     private final DocumentRepository documentRepository;
     private final DocumentChunkRepository documentChunkRepository;
-    private final DocumentChunkJdbcRepository documentChunkJdbcRepository;
     private final FileStorageService fileStorageService;
-    private final TextExtractor textExtractor;
-    private final DocumentChunker documentChunker;
-    private final EmbeddingModelClient embeddingModelClient;
-    private final TokenUsageRecorder tokenUsageRecorder;
+    private final DocumentProcessor documentProcessor;
 
     public DocumentService(
             UserRepository userRepository,
@@ -38,24 +30,16 @@ public class DocumentService {
             ProjectService projectService,
             DocumentRepository documentRepository,
             DocumentChunkRepository documentChunkRepository,
-            DocumentChunkJdbcRepository documentChunkJdbcRepository,
             FileStorageService fileStorageService,
-            TextExtractor textExtractor,
-            DocumentChunker documentChunker,
-            EmbeddingModelClient embeddingModelClient,
-            TokenUsageRecorder tokenUsageRecorder
+            DocumentProcessor documentProcessor
     ) {
         this.userRepository = userRepository;
         this.projectRepository = projectRepository;
         this.projectService = projectService;
         this.documentRepository = documentRepository;
         this.documentChunkRepository = documentChunkRepository;
-        this.documentChunkJdbcRepository = documentChunkJdbcRepository;
         this.fileStorageService = fileStorageService;
-        this.textExtractor = textExtractor;
-        this.documentChunker = documentChunker;
-        this.embeddingModelClient = embeddingModelClient;
-        this.tokenUsageRecorder = tokenUsageRecorder;
+        this.documentProcessor = documentProcessor;
     }
 
     public DocumentUploadResponse upload(Long userId, Long projectId, MultipartFile file, String title) {
@@ -79,34 +63,12 @@ public class DocumentService {
         ));
 
         try {
-            document.markProcessing();
-            documentRepository.save(document);
-            ExtractionResult extraction = textExtractor.extract(storedPath, originalFileName);
-            List<String> chunks = documentChunker.split(extraction.text());
-            int embeddingTokens = 0;
-            for (int i = 0; i < chunks.size(); i++) {
-                EmbedResult embedding = embeddingModelClient.embed(chunks.get(i));
-                embeddingTokens += embedding.totalTokens();
-                documentChunkJdbcRepository.save(document.getId(), i, chunks.get(i), embedding.embedding());
-            }
-            document.markCompleted();
-            documentRepository.save(document);
-            tokenUsageRecorder.record(
-                    userId, projectId, null,
-                    TokenUsageType.EMBEDDING_UPLOAD, embeddingModelClient.modelName(),
-                    embeddingTokens, 0
-            );
-            if (extraction.usedOcr()) {
-                tokenUsageRecorder.record(
-                        userId, projectId, null,
-                        TokenUsageType.OCR_UPLOAD, extraction.ocrModel(),
-                        extraction.ocrPromptTokens(), extraction.ocrCompletionTokens()
-                );
-            }
+            documentProcessor.process(document.getId(), userId, projectId);
         } catch (RuntimeException ex) {
-            document.markFailed(ex.getMessage());
+            // executor 큐 포화 등으로 비동기 접수 자체가 실패한 경우
+            document.markFailed("문서 처리를 시작하지 못했습니다.");
             documentRepository.save(document);
-            throw ex;
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "문서 처리를 시작하지 못했습니다. 잠시 후 다시 시도해주세요.");
         }
 
         return new DocumentUploadResponse(document.getId(), document.getTitle(), document.getStatus());
@@ -133,6 +95,7 @@ public class DocumentService {
                 document.getOriginalFileName(),
                 document.getStatus(),
                 documentChunkRepository.countByDocumentId(document.getId()),
+                document.getErrorMessage(),
                 document.getCreatedAt()
         );
     }

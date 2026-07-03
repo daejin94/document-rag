@@ -8,6 +8,7 @@ public record DocumentDetailResponse(
         String originalFileName,
         DocumentStatus status,
         long chunkCount,
+        String errorMessage,
         Instant createdAt
 ) {
 }

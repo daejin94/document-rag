@@ -32,29 +32,36 @@ PDF는 PDFBox로 텍스트를 추출한다. 추출 가능한 텍스트가 충분
 
 ## 업로드 처리 흐름
 
-업로드는 `DocumentService.upload` 안에서 동기로 처리된다.
+업로드 접수는 `DocumentService.upload`에서 동기로, 추출/chunk/embedding은 `DocumentProcessor.process`에서 비동기로 처리된다.
+
+동기(요청 스레드, `DocumentService.upload`):
 
 1. `requireMember(projectId, userId)`로 프로젝트 멤버인지 확인한다.
 2. 빈 파일인지 확인한다.
 3. 원본 파일명을 확인한다.
 4. 파일을 storage root 아래에 저장한다.
-5. `documents`에 문서 record를 저장한다(`user_id` + `project_id`).
-6. 문서 상태를 `PROCESSING`으로 변경한다.
-7. 파일 형식에 따라 텍스트를 추출한다. TXT/Markdown은 UTF-8 우선, MS949 fallback 순서로 읽고, PDF는 PDFBox로 읽되 텍스트가 부족하면 페이지를 렌더링해 OCR로 추출하며, 이미지 파일은 OpenAI 비전 OCR로 추출한다.
-8. 텍스트를 chunk로 나눈다.
-9. 각 chunk의 embedding을 OpenAI Embedding API로 생성한다.
-10. `document_chunks`에 chunk와 embedding을 저장한다.
-11. 성공하면 문서 상태를 `COMPLETED`로 변경한다.
-12. 실패하면 문서 상태를 `FAILED`로 변경하고 에러 메시지를 저장한다.
+5. `documents`에 문서 record를 저장한다(`user_id` + `project_id`, 상태 `UPLOADED`).
+6. 비동기 처리를 접수하고 즉시 응답한다(접수 실패 시 `FAILED` 기록 후 503).
+
+비동기(`documentProcessingExecutor` 스레드, `DocumentProcessor.process`):
+
+7. 문서 상태를 `PROCESSING`으로 변경한다.
+8. 파일 형식에 따라 텍스트를 추출한다. TXT/Markdown은 UTF-8 우선, MS949 fallback 순서로 읽고, PDF는 PDFBox로 읽되 텍스트가 부족하면 페이지를 렌더링해 OCR로 추출하며, 이미지 파일은 OpenAI 비전 OCR로 추출한다.
+9. 텍스트를 chunk로 나눈다.
+10. 각 chunk의 embedding을 OpenAI Embedding API로 생성한다.
+11. **하나의 트랜잭션 안에서** 모든 chunk를 `document_chunks`에 저장하고 문서 상태를 `COMPLETED`로 변경한다(부분 저장 방지; OpenAI 호출 중에는 DB 커넥션을 점유하지 않는다).
+12. 실패하면 문서 상태를 `FAILED`로 변경하고 에러 메시지를 저장한다. 에러 메시지는 문서 상세 응답의 `errorMessage`로 노출된다.
+
+클라이언트는 업로드 응답을 받은 뒤 문서 목록/상세를 폴링해 `PROCESSING → COMPLETED | FAILED` 전이를 확인한다(프론트는 처리 중 문서가 있는 동안 3초 간격으로 목록을 갱신한다).
 
 ## DocumentStatus
 
 | 상태 | 의미 |
 |---|---|
-| `UPLOADED` | 문서 record 생성 직후 |
+| `UPLOADED` | 문서 record 생성 직후(비동기 처리 대기) |
 | `PROCESSING` | chunk/embedding 처리 중 |
 | `COMPLETED` | 정상 처리 완료 |
-| `FAILED` | 처리 실패 |
+| `FAILED` | 처리 실패(`errorMessage`에 사유 저장) |
 
 ## Chunk
 
